@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8"> <!-- gere les caracteres speciauxs -->
+    <title>Inscription</title>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/api.js"></script>
+</head>
+
+<body>
+    <header>
+      <h1>Créez un compte : </h1>
+    </header>
+  
+    <main>
+        <form id="register-form">
+            <input type="text" id="username" placeholder="Nom d'utilisateur" required />
+            <input type="email" id="email" placeholder="Email" required />
+            <input type="password" id="password" placeholder="Mot de passe" required />
+            <button>register</button>
+        </form>
+    </main>
+    <p id="msg"></p>
+
+    <script>
+         
+         const form = document.getElementById("register-form");
+         const username = document.getElementById("username");
+         const email = document.getElementById("email");
+         const password = document.getElementById("password");
+         const msg = document.getElementById("msg");
+         form.onsubmit = async (e) => {
+
+          e.preventDefault(); // Empêche le rechargement de la page
+          const res = await register(username.value, email.value, password.value); // Appelle la fonction register
+          msg.textContent = res.message; // Affiche le message de retour (succès ou erreur)
+          if (res.success) location.href = "../login.html";
+          alert(`OKKKK : ${username.value}, ${email.value}`);
+        };
+      </script> 
+
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!-- frontend/index.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"> <!-- gere les caracteres speciauxs -->
+  <title>Bataille Navale</title>
+  <link rel="stylesheet" href="assets/css/styles.css"><!-- charge les styles css -->
+</head>
+<body>
+  <header>
+    <h1>Bataille Navale</h1>
+    <nav id="main-nav"> 
+      <ul>
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="pages/login.html" id="login-link">Connexion</a></li>
+        <li><a href="pages/register.html" id="register-link">Inscription</a></li>
+        <li><a href="pages/profile.html" id="profile-link" style="display: none;">Profil</a></li>
+        <li><a href="pages/game.html" id="game-link" style="display: none;">Jouer</a></li>
+        <li><a href="#" id="logout-link" style="display: none;">Déconnexion</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="debut">
+      <h2>Bienvenue à la Bataille Navale en ligne!</h2>
+      <p>Défiez d'autres joueurs dans ce classique jeu de stratégie. Placez vos navires, tirez sur la grille de l'adversaire, et soyez le premier à couler tous les navires ennemis.</p>
+      <div class="cta-buttons">
+        <a href="pages/register.html" class="btn primary-btn" id="start-btn">Commencer à jouer</a>
+        <a href="#rules" class="btn secondary-btn">Règles du jeu</a>
+      </div>
+    </section>
+
+    <section id="rules">
+      <h2>Règles du jeu</h2>
+      <div class="rules-content">
+        <div class="rule">
+          <h3>1. Préparation</h3>
+          <p>Chaque joueur place 5 navires sur sa grille:</p>
+          <ul>
+            <li>Porte-avions (5 cases)</li>
+            <li>Cuirassé (4 cases)</li>
+            <li>Croiseur (3 cases)</li>
+            <li>Sous-marin (3 cases)</li>
+            <li>Destroyer (2 cases)</li>
+          </ul>
+        </div>
+        <div class="rule">
+          <h3>2. Déroulement</h3>
+          <p>À tour de rôle, chaque joueur tire sur une case de la grille adverse. L'adversaire annonce "touché" ou "raté".</p>
+        </div>
+        <div class="rule">
+          <h3>3. Victoire</h3>
+          <p>Le premier joueur qui coule tous les navires adverses remporte la partie.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Bataille Navale - Projet Web</p>
+  </footer>
+
+  <script src="assets/js/auth.js"></script>
+  <script>
+    // Vérifier si l'utilisateur est connecté au chargement de la page
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuthentication();
+    });
+
+    // Gérer la déconnexion
+    document.getElementById('logout-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+  </script>
+</body>
+</html>
