@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-    <meta charset="UTF-8"> <!-- gere les caracteres speciauxs -->
-    <title>Inscription</title>
-    <script src="../assets/js/auth.js"></script>
-    <script src="../assets/js/api.js"></script>
+    <meta charset="UTF-8">
+    <title>Connexion</title>
+    <script src="../assets/js/auth.js" defer></script>
 </head>
-
 <body>
     <header>
       <h1>Connectez vous : </h1>
@@ -17,31 +14,31 @@
         <form id="login-form">
             <input type="text" id="username" placeholder="Nom d'utilisateur" required />
             <input type="password" id="password" placeholder="Mot de passe" required />
-            <button>login</button>
+            <button type="submit">Se connecter</button>
         </form>
     </main>
     <p id="msg"></p>
 
     <script>
-         
-         const form = document.getElementById("login-form");
-         const username = document.getElementById("username");
-         const password = document.getElementById("password");
-         const msg = document.getElementById("msg");
-         form.onsubmit = async (e) => {
-
-          e.preventDefault(); // Empêche le rechargement de la page
-          const res = await login(username.value, password.value); // Appelle la fonction register
-          msg.textContent = res.message; // Affiche le message de retour (succès ou erreur)
-          if (res.success) {
-            alert(`OKKKK : ${username.value}`);
-
-            location.href = "../index.html"; // Redirige vers la page du jeu si connexion réussie
-          } else {
-            alert("Erreur de connexion");
-          }
-        };
-      </script> 
-
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById("login-form");
+            const username = document.getElementById("username");
+            const password = document.getElementById("password");
+            const msg = document.getElementById("msg");
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                msg.textContent = "Connexion en cours...";
+                
+                const res = await login(username.value, password.value);
+                msg.textContent = res.message;
+                
+                if (res.success) {
+                    alert("Connexion réussie! Vous allez être redirigé vers la page d'accueil.");
+                    window.location.href = "../index.html";
+                }
+            };
+        });
+    </script>
 </body>
 </html>

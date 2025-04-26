@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-    <meta charset="UTF-8"> <!-- gere les caracteres speciauxs -->
+    <meta charset="UTF-8">
     <title>Inscription</title>
-    <script src="../assets/js/auth.js"></script>
-    <script src="../assets/js/api.js"></script>
+    <script src="../assets/js/auth.js" defer></script>
 </head>
-
 <body>
     <header>
       <h1>Créez un compte : </h1>
@@ -18,27 +15,32 @@
             <input type="text" id="username" placeholder="Nom d'utilisateur" required />
             <input type="email" id="email" placeholder="Email" required />
             <input type="password" id="password" placeholder="Mot de passe" required />
-            <button>register</button>
+            <button type="submit">S'inscrire</button>
         </form>
     </main>
     <p id="msg"></p>
 
     <script>
-         
-         const form = document.getElementById("register-form");
-         const username = document.getElementById("username");
-         const email = document.getElementById("email");
-         const password = document.getElementById("password");
-         const msg = document.getElementById("msg");
-         form.onsubmit = async (e) => {
-
-          e.preventDefault(); // Empêche le rechargement de la page
-          const res = await register(username.value, email.value, password.value); // Appelle la fonction register
-          msg.textContent = res.message; // Affiche le message de retour (succès ou erreur)
-          if (res.success) location.href = "login.html";
-          alert(`OKKKK : ${username.value}, ${email.value}`);
-        };
-      </script> 
-
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById("register-form");
+            const username = document.getElementById("username");
+            const email = document.getElementById("email");
+            const password = document.getElementById("password");
+            const msg = document.getElementById("msg");
+            
+            form.onsubmit = async (e) => {
+                e.preventDefault(); // Empêche le rechargement de la page
+                msg.textContent = "Inscription en cours...";
+                
+                const res = await register(username.value, email.value, password.value);
+                msg.textContent = res.message;
+                
+                if (res.success) {
+                    alert("Inscription réussie! Vous allez être redirigé vers la page de connexion.");
+                    window.location.href = "login.html";
+                }
+            };
+        });
+    </script>
 </body>
 </html>

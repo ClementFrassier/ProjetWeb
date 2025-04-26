@@ -16,7 +16,7 @@ export const registerUser = async (ctx: Context) => {
     }
 
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await db.query(
+    const existingUser = db.query(
       "SELECT * FROM users WHERE username = ? OR email = ?",
       [username, email]
     );
@@ -31,24 +31,34 @@ export const registerUser = async (ctx: Context) => {
     const hashedPassword = await hashPassword(password);
 
     // Insérer l'utilisateur
-    const result = await db.query(
+    db.execute(
       "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
     );
-
-    // Initialiser les statistiques
-    await db.query(
-      "INSERT INTO stats (user_id) VALUES (?)",
-      [result.lastInsertId]
+    
+    // Récupérer l'ID de l'utilisateur inséré
+    const newUser = db.query(
+      "SELECT id FROM users WHERE username = ?",
+      [username]
     );
+    
+    if (newUser.length > 0) {
+      // Initialiser les statistiques
+      db.execute(
+        "INSERT INTO stats (user_id) VALUES (?)",
+        [newUser[0].id]
+      );
+    }
 
     ctx.response.status = 201;
     ctx.response.body = { message: "Utilisateur créé avec succès" };
   } catch (error) {
+    console.error("Erreur lors de l'enregistrement:", error);
     ctx.response.status = 500;
     ctx.response.body = { message: "Erreur serveur", error: error.message };
   }
 };
+
 
 export const loginUser = async (ctx: Context) => {
   try {
@@ -120,9 +130,30 @@ export const loginUser = async (ctx: Context) => {
 };
 
 export const logoutUser = async (ctx: Context) => {
-  // Supprimer le cookie d'authentification
   ctx.cookies.delete("auth_token");
   
   ctx.response.status = 200;
   ctx.response.body = { message: "Déconnexion réussie" };
+};
+
+export const checkAuth = async (ctx: Context) => {
+
+  const userId = ctx.state.user.id;
+  
+  const users = await db.query(
+    "SELECT id, username, email FROM users WHERE id = ?",
+    [userId]
+  );
+  
+  if (users.length === 0) {
+    ctx.response.status = 404;
+    ctx.response.body = { message: "Utilisateur non trouvé" };
+    return;
+  }
+  
+  ctx.response.status = 200;
+  ctx.response.body = { 
+    authenticated: true,
+    user: users[0]
+  };
 };

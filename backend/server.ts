@@ -5,10 +5,13 @@ import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
 import { router as authRouter } from "./routes/auth.ts";
 import { router as gameRouter } from "./routes/game.ts";
 import { router as userRouter } from "./routes/user.ts";
+import { router as shipRouter } from "./routes/ship.ts";
 import { errorMiddleware } from "./middleware/error.ts";
+import { initDb } from "./config/db.ts";
 
 const app = new Application();
 const PORT = 3000;
+
 
 // Middleware global
 app.use(errorMiddleware);
@@ -24,7 +27,8 @@ app.use(gameRouter.routes());
 app.use(gameRouter.allowedMethods());
 app.use(userRouter.routes());
 app.use(userRouter.allowedMethods());
-
+app.use(shipRouter.routes());
+app.use(shipRouter.allowedMethods());
 // WebSocket setup
 app.use(async (ctx, next) => {
   const upgrade = ctx.request.headers.get("upgrade");
@@ -50,6 +54,12 @@ app.use((ctx) => {
   ctx.response.status = 404;
   ctx.response.body = { message: "Route not found" };
 });
+
+await initDb();
+
+console.log(`Server running on http://localhost:${PORT}`);
+await app.listen({ port: PORT });
+
 
 console.log(`Server running on http://localhost:${PORT}`);
 await app.listen({ port: PORT });
