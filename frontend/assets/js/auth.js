@@ -7,6 +7,9 @@ async function checkAuthentication() {
     const response = await fetch(`${API_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include', // Important pour envoyer les cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
     if (response.ok) {
@@ -78,6 +81,7 @@ async function login(username, password) {
 // Fonction d'inscription
 async function register(username, email, password) {
   try {
+    console.log("Envoi des données:", { username, email, password });
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: {
@@ -87,6 +91,7 @@ async function register(username, email, password) {
     });
 
     const data = await response.json();
+    console.log("Réponse reçue:", data);
     
     if (response.ok) {
       return { success: true, message: data.message };

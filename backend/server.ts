@@ -1,4 +1,3 @@
-// Point d'entrée du serveur 
 // server.ts
 import { Application } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
@@ -12,13 +11,23 @@ import { initDb } from "./config/db.ts";
 const app = new Application();
 const PORT = 3000;
 
-
 // Middleware global
 app.use(errorMiddleware);
+
+// Configuration CORS adaptée
 app.use(oakCors({
   origin: "http://localhost:8080",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
+
+// Middleware pour précharger le corps des requêtes
+app.use(async (ctx, next) => {
+  // Logger pour debugger
+  console.log(`${ctx.request.method} ${ctx.request.url}`);
+  await next();
+});
 
 // Routes
 app.use(authRouter.routes());
@@ -29,6 +38,7 @@ app.use(userRouter.routes());
 app.use(userRouter.allowedMethods());
 app.use(shipRouter.routes());
 app.use(shipRouter.allowedMethods());
+
 // WebSocket setup
 app.use(async (ctx, next) => {
   const upgrade = ctx.request.headers.get("upgrade");
@@ -56,10 +66,6 @@ app.use((ctx) => {
 });
 
 await initDb();
-
-console.log(`Server running on http://localhost:${PORT}`);
-await app.listen({ port: PORT });
-
 
 console.log(`Server running on http://localhost:${PORT}`);
 await app.listen({ port: PORT });

@@ -1,3 +1,4 @@
+// controllers/auth.ts
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { hashPassword, verifyPassword } from "../utils/hash.ts";
 import { createJWT } from "../utils/jwt.ts";
@@ -5,10 +6,18 @@ import { db } from "../config/db.ts";
 
 export const registerUser = async (ctx: Context) => {
   try {
-    const body = await ctx.request.body().value;
+    if (!ctx.request.hasBody) {
+      ctx.response.status = 400;
+      ctx.response.body = { message: "Le corps de la requête est vide" };
+      return;
+    }
+
+    const bodyReader = ctx.request.body({ type: "json" }); // Get the body reader
+    const body = await bodyReader.value; // Await the value to get the parsed body
     const { username, email, password } = body;
 
-    // Vérifications basiques
+
+
     if (!username || !email || !password) {
       ctx.response.status = 400;
       ctx.response.body = { message: "Tous les champs sont requis" };
@@ -16,12 +25,12 @@ export const registerUser = async (ctx: Context) => {
     }
 
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = db.query(
+    const existingUsers = await db.query(
       "SELECT * FROM users WHERE username = ? OR email = ?",
       [username, email]
     );
 
-    if (existingUser.length > 0) {
+    if (existingUsers.length > 0) {
       ctx.response.status = 409;
       ctx.response.body = { message: "Nom d'utilisateur ou email déjà utilisé" };
       return;
@@ -31,20 +40,19 @@ export const registerUser = async (ctx: Context) => {
     const hashedPassword = await hashPassword(password);
 
     // Insérer l'utilisateur
-    db.execute(
+    await db.execute(
       "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
     );
-    
-    // Récupérer l'ID de l'utilisateur inséré
-    const newUser = db.query(
+
+    // Récupérer l'ID du nouvel utilisateur
+    const newUser = await db.query(
       "SELECT id FROM users WHERE username = ?",
       [username]
     );
-    
+
     if (newUser.length > 0) {
-      // Initialiser les statistiques
-      db.execute(
+      await db.execute(
         "INSERT INTO stats (user_id) VALUES (?)",
         [newUser[0].id]
       );
@@ -59,10 +67,15 @@ export const registerUser = async (ctx: Context) => {
   }
 };
 
-
 export const loginUser = async (ctx: Context) => {
   try {
-    const body = await ctx.request.body().value;
+    if (!ctx.request.hasBody) {
+      ctx.response.status = 400;
+      ctx.response.body = { message: "Le corps de la requête est vide" };
+      return;
+    }
+
+    const body = await ctx.request.body().value; // <= Correction ici aussi
     const { username, password } = body;
 
     if (!username || !password) {
@@ -71,7 +84,6 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    // Rechercher l'utilisateur
     const users = await db.query(
       "SELECT * FROM users WHERE username = ?",
       [username]
@@ -85,7 +97,6 @@ export const loginUser = async (ctx: Context) => {
 
     const user = users[0];
 
-    // Vérifier le mot de passe
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
       ctx.response.status = 401;
@@ -93,25 +104,22 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    // Créer un token JWT
     const token = await createJWT({
       id: user.id,
       username: user.username,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 // 1 heure
+      exp: Math.floor(Date.now() / 1000) + 60 * 60, // expire dans 1 heure
     });
 
-    // Mettre à jour la dernière connexion
-    await db.query(
-      "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", 
+    await db.execute(
+      "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
       [user.id]
     );
 
-    // Définir le cookie
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
-      secure: true, // Pour HTTPS
-      sameSite: "none", // Pour le CORS
-      maxAge: 60 * 60 * 1000, // 1 heure en millisecondes
+      secure: true,
+      sameSite: "none",
+      maxAge: 60 * 60 * 1000,
     });
 
     ctx.response.status = 200;
@@ -120,40 +128,52 @@ export const loginUser = async (ctx: Context) => {
       user: {
         id: user.id,
         username: user.username,
-        email: user.email
+        email: user.email,
       }
     };
   } catch (error) {
+    console.error("Erreur lors de la connexion:", error);
     ctx.response.status = 500;
     ctx.response.body = { message: "Erreur serveur", error: error.message };
   }
 };
 
 export const logoutUser = async (ctx: Context) => {
-  ctx.cookies.delete("auth_token");
-  
-  ctx.response.status = 200;
-  ctx.response.body = { message: "Déconnexion réussie" };
+  try {
+    ctx.cookies.delete("auth_token");
+    
+    ctx.response.status = 200;
+    ctx.response.body = { message: "Déconnexion réussie" };
+  } catch (error) {
+    console.error("Erreur lors de la déconnexion:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { message: "Erreur serveur", error: error.message };
+  }
 };
 
 export const checkAuth = async (ctx: Context) => {
+  try {
+    const userId = ctx.state.user.id;
 
-  const userId = ctx.state.user.id;
-  
-  const users = await db.query(
-    "SELECT id, username, email FROM users WHERE id = ?",
-    [userId]
-  );
-  
-  if (users.length === 0) {
-    ctx.response.status = 404;
-    ctx.response.body = { message: "Utilisateur non trouvé" };
-    return;
+    const users = await db.query(
+      "SELECT id, username, email FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (users.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { message: "Utilisateur non trouvé" };
+      return;
+    }
+
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      authenticated: true,
+      user: users[0],
+    };
+  } catch (error) {
+    console.error("Erreur lors de la vérification d'authentification:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { message: "Erreur serveur", error: error.message };
   }
-  
-  ctx.response.status = 200;
-  ctx.response.body = { 
-    authenticated: true,
-    user: users[0]
-  };
 };
