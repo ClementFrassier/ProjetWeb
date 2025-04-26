@@ -1,5 +1,5 @@
 // config/db.ts
-import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import { DB } from "https://deno.land/x/sqlite/mod.ts";
 
 // Initialiser la base de données
 export const db = new DB("./battleship.db");
@@ -36,7 +36,8 @@ export const initDb = async () => {
       y_position INTEGER NOT NULL,
       orientation TEXT NOT NULL,
       size INTEGER NOT NULL,
-      is_sunk BOOLEAN DEFAULT FALSE
+      is_sunk BOOLEAN DEFAULT FALSE,
+      hit_count INTEGER DEFAULT 0
     );
     
     CREATE TABLE IF NOT EXISTS shots (

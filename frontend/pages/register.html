@@ -35,7 +35,7 @@
           e.preventDefault(); // Empêche le rechargement de la page
           const res = await register(username.value, email.value, password.value); // Appelle la fonction register
           msg.textContent = res.message; // Affiche le message de retour (succès ou erreur)
-          if (res.success) location.href = "../login.html";
+          if (res.success) location.href = "login.html";
           alert(`OKKKK : ${username.value}, ${email.value}`);
         };
       </script> 

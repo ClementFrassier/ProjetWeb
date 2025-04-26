@@ -29,7 +29,10 @@ CREATE TABLE ships (
     y_position INTEGER NOT NULL,
     orientation TEXT NOT NULL, -- "horizontal", "vertical"
     size INTEGER NOT NULL,
-    is_sunk BOOLEAN DEFAULT FALSE
+    is_sunk BOOLEAN DEFAULT FALSE,
+    hit_count INTEGER DEFAULT 0,
+    FOREIGN KEY (game_id) REFERENCES games(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- Table des tirs

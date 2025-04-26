@@ -1,4 +1,3 @@
-// controllers/authController.ts
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { hashPassword, verifyPassword } from "../utils/hash.ts";
 import { createJWT } from "../utils/jwt.ts";
