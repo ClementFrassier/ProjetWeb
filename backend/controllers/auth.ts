@@ -135,7 +135,8 @@ export const loginUser = async (ctx: Context) => {
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: false,
-      sameSite: "none",
+      sameSite: "None",
+      path: "/",
       maxAge: 60 * 60 * 1000,
     });
 
@@ -171,11 +172,7 @@ export const logoutUser = async (ctx: Context) => {
 export const checkAuth = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
-
-    const users = await db.query(
-      "SELECT id, username, email FROM users WHERE id = ?",
-      [userId]
-    );
+    const users = await db.query("SELECT id, username, email FROM users WHERE id = ?", [userId]);
 
     if (users.length === 0) {
       ctx.response.status = 404;

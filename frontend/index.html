@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8"> <!-- gere les caracteres speciauxs -->
   <title>Bataille Navale</title>
-  <link rel="stylesheet" href="assets/css/styles.css"><!-- charge les styles css -->
+  <!--<link rel="stylesheet" href="assets/css/styles.css">charge les styles css -->
 </head>
 <body>
   <header>
@@ -62,17 +62,19 @@
   </footer>
   
   <script src="assets/js/auth.js"></script>
-  <script>
-    // Vérifier si l'utilisateur est connecté au chargement de la page
+    <script>
     document.addEventListener('DOMContentLoaded', () => {
-      checkAuthentication();
-    });
+      checkAuthentication(); // Vérifie l'auth au chargement
 
-    // Gérer la déconnexion
-    document.getElementById('logout-link').addEventListener('click', (e) => {
-      e.preventDefault();
-      logout();
+      const logoutLink = document.getElementById('logout-link');
+      if (logoutLink) {
+        logoutLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          logout();
+        });
+      }
     });
   </script>
+
 </body>
 </html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bataille Navale - Jeu</title>
+  <link rel="stylesheet" href="../assets/css/styles.css">
+  <link rel="stylesheet" href="../assets/css/game.css">
+</head>
+<body>
+  <header>
+    <h1>Bataille Navale</h1>
+    <nav id="main-nav">
+      <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="profile.html" id="profile-link">Profil</a></li>
+        <li><a href="#" id="logout-link">Déconnexion</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="game-container">
+    <div id="game-status">
+      <h2>Partie #<span id="game-id">...</span></h2>
+      <div id="status-message">En attente d'un adversaire...</div>
+      <div id="turn-indicator" class="hidden">C'est votre tour</div>
+    </div>
+
+    <div id="game-setup" class="active-phase">
+      <h3>Placement des navires</h3>
+      <div class="ships-selection">
+        <div class="ship-item" data-ship="carrier" data-size="5" draggable="true">Porte-avions (5)</div>
+        <div class="ship-item" data-ship="battleship" data-size="4" draggable="true">Cuirassé (4)</div>
+        <div class="ship-item" data-ship="cruiser" data-size="3" draggable="true">Croiseur (3)</div>
+        <div class="ship-item" data-ship="submarine" data-size="3" draggable="true">Sous-marin (3)</div>
+        <div class="ship-item" data-ship="destroyer" data-size="2" draggable="true">Destroyer (2)</div>
+      </div>
+      <button id="rotate-btn">Rotation</button>
+      <button id="ready-btn" disabled>Prêt</button>
+    </div>
+
+    <div id="game-boards">
+      <div class="board-container">
+        <h3>Votre flotte</h3>
+        <div id="player-board" class="game-board"></div>
+      </div>
+      
+      <div class="board-container">
+        <h3>Flotte ennemie</h3>
+        <div id="opponent-board" class="game-board hidden"></div>
+      </div>
+    </div>
+
+    <div id="game-chat">
+      <h3>Messages</h3>
+      <div id="chat-messages"></div>
+      <div class="chat-input">
+        <input type="text" id="message-input" placeholder="Entrez un message...">
+        <button id="send-message">Envoyer</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Bataille Navale - Projet Web</p>
+  </footer>
+
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/ship.js"></script>
+  <script src="../assets/js/game.js"></script>
+  <script src="../assets/js/websocket.js"></script>
+  <script>
+    // Vérifier si l'utilisateur est connecté au chargement de la page
+    document.addEventListener('DOMContentLoaded', async () => {
+      const isAuthenticated = await checkAuthentication();
+      if (!isAuthenticated) {
+        alert("Vous devez être connecté pour accéder à cette page.");
+        window.location.href = "login.html";
+      } else {
+        initializeGame();
+      }
+    });
+
+    // Gérer la déconnexion
+    document.getElementById('logout-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+  </script>
+</body>
+</html>

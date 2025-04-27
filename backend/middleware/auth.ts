@@ -4,6 +4,8 @@ import { verifyJWT } from "../utils/jwt.ts";
 
 export const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
   try {
+    console.log("Token dans le cookie:", ctx.cookies.get("auth_token"));
+
     // Récupérer le token depuis le cookie
     const token = ctx.cookies.get("auth_token");
     if (!token) {

@@ -12,8 +12,19 @@ async function checkAuthentication() {
       }
     });
 
+    console.log("Réponse checkAuthentication:", response); // <-- AJOUTE CA
+    const data = await response.json();
+    console.log("Data reçue:", data); // <-- AJOUTE
+
+    console.log("Réponse du serveur : ", response);
     if (response.ok) {
-      const data = await response.json();
+      console.log("L'utilisateur est authentifié !");
+    } else {
+      console.log("Erreur d'authentification");
+    }
+
+
+    if (response.ok) {
       // L'utilisateur est connecté
       document.getElementById('login-link').style.display = 'none';
       document.getElementById('register-link').style.display = 'none';
@@ -44,7 +55,7 @@ async function checkAuthentication() {
       localStorage.removeItem('user');
       
       return false;
-    }
+    } 
   } catch (error) {
     console.error('Erreur lors de la vérification de l\'authentification:', error);
     return false;
