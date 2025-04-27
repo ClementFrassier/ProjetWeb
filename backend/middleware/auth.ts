@@ -18,7 +18,7 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     const payload = await verifyJWT(token);
     ctx.state.user = payload;
     
-    await next();
+    await next(); 
   } catch (error) {
     ctx.response.status = 401;
     ctx.response.body = { message: "Token invalide" };

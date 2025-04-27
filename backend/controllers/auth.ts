@@ -96,6 +96,12 @@ export const loginUser = async (ctx: Context) => {
     }
 
     const user = users[0];
+    if (!user) {
+      ctx.response.status = 401;
+      ctx.response.body = { message: "Utilisateur non trouvé" };
+      return;
+    }
+    
     const hash = user[3];
 
     const isValid = await verifyPassword(password, hash);
@@ -135,8 +141,8 @@ export const loginUser = async (ctx: Context) => {
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: false,
-      sameSite: "None",
-      path: "/",
+      sameSite: "lax",
+      path: "/", //?
       maxAge: 60 * 60 * 1000,
     });
 
