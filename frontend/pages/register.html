@@ -31,6 +31,13 @@
             form.onsubmit = async (e) => {
                 e.preventDefault(); // Empêche le rechargement de la page
                 msg.textContent = "Inscription en cours...";
+                console.log("Données à envoyer:", {
+                  username: username.value,
+                  email: email.value,
+                 password: password.value
+                });
+    
+
                 
                 const res = await register(username.value, email.value, password.value);
                 msg.textContent = res.message;

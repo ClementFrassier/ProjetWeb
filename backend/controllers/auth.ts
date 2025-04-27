@@ -12,8 +12,7 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    const bodyReader = ctx.request.body({ type: "json" }); // Get the body reader
-    const body = await bodyReader.value; // Await the value to get the parsed body
+    const body = await ctx.request.body.json(); // Get the body reader // Await the value to get the parsed body
     const { username, email, password } = body;
 
 
@@ -40,7 +39,7 @@ export const registerUser = async (ctx: Context) => {
     const hashedPassword = await hashPassword(password);
 
     // Insérer l'utilisateur
-    await db.execute(
+    await db.query(
       "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
     );
@@ -52,10 +51,11 @@ export const registerUser = async (ctx: Context) => {
     );
 
     if (newUser.length > 0) {
-      await db.execute(
+      await db.query(
         "INSERT INTO stats (user_id) VALUES (?)",
         [newUser[0].id]
       );
+
     }
 
     ctx.response.status = 201;
@@ -75,7 +75,7 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body().value; // <= Correction ici aussi
+    const body = await ctx.request.body.json(); // <= Correction ici aussi
     const { username, password } = body;
 
     if (!username || !password) {
@@ -91,33 +91,50 @@ export const loginUser = async (ctx: Context) => {
 
     if (users.length === 0) {
       ctx.response.status = 401;
-      ctx.response.body = { message: "Identifiants incorrects" };
+      ctx.response.body = { message: "Username incorrects" };
       return;
     }
 
     const user = users[0];
+    const hash = user[3];
 
-    const isValid = await verifyPassword(password, user.password_hash);
+    const isValid = await verifyPassword(password, hash);
+
     if (!isValid) {
       ctx.response.status = 401;
-      ctx.response.body = { message: "Identifiants incorrects" };
+      ctx.response.body = { message: "MDP incorrects" };
+      return;
+    }
+    if (!user || !user[0] || !user[1]) {
+      ctx.response.status = 401;
+      ctx.response.body = { message: "Utilisateur invalide" };
       return;
     }
 
+    console.log("Utilisateur:", user[0]);
+    console.log("Utilisateur:", user[1]);
+    console.log("Payload:", {
+   id: user[0],
+    username: user[1],
+    exp: Math.floor(Date.now() / 1000) + 60 * 60,
+    });
+
+
     const token = await createJWT({
-      id: user.id,
-      username: user.username,
+      id: user[0],
+      username: user[1],
       exp: Math.floor(Date.now() / 1000) + 60 * 60, // expire dans 1 heure
     });
 
+
     await db.execute(
       "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
-      [user.id]
+      [user[0]]
     );
 
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
-      secure: true,
+      secure: false,
       sameSite: "none",
       maxAge: 60 * 60 * 1000,
     });
@@ -126,9 +143,9 @@ export const loginUser = async (ctx: Context) => {
     ctx.response.body = { 
       message: "Connexion réussie",
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
+        id: user[0],
+        username: user[1],
+        email: user[2],
       }
     };
   } catch (error) {

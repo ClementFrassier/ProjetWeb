@@ -22,3 +22,4 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     ctx.response.body = { message: "Token invalide" };
   }
 };
+

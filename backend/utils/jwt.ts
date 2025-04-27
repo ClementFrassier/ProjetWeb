@@ -1,13 +1,16 @@
-// utils/jwt.ts
 import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
-const encoder = new TextEncoder();
-const JWT_SECRET = encoder.encode("key"); // À changer en production
+// Génération de la clé secrète HMAC une seule fois
+const secretKey = await crypto.subtle.generateKey(
+    { name: "HMAC", hash: "SHA-512" },
+    true,
+    ["sign", "verify"]
+);
 
 export const createJWT = async (payload: Record<string, unknown>) => {
-  return await create({ alg: "HS256", typ: "JWT" }, payload, JWT_SECRET);
+  return await create({ alg: "HS512", typ: "JWT" }, payload, secretKey);
 };
 
 export const verifyJWT = async (token: string) => {
-  return await verify(token, JWT_SECRET);
+  return await verify(token, secretKey);
 };
