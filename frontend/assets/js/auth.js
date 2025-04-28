@@ -6,31 +6,25 @@ async function checkAuthentication() {
   try {
     const response = await fetch(`${API_URL}/auth/check`, {
       method: 'GET',
-      credentials: 'include', // Important pour envoyer les cookies
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json'
       }
     });
 
-    console.log("Réponse checkAuthentication:", response); // <-- AJOUTE CA
     const data = await response.json();
-    console.log("Data reçue:", data); // <-- AJOUTE
-
-    console.log("Réponse du serveur : ", response);
-    if (response.ok) {
-      console.log("L'utilisateur est authentifié !");
-    } else {
-      console.log("Erreur d'authentification");
-    }
-
+    console.log("Data reçue:", data);
 
     if (response.ok) {
       // L'utilisateur est connecté
-      document.getElementById('login-link').style.display = 'none';
-      document.getElementById('register-link').style.display = 'none';
-      document.getElementById('profile-link').style.display = 'block';
-      document.getElementById('game-link').style.display = 'block';
-      document.getElementById('logout-link').style.display = 'block';
+      console.log("L'utilisateur est authentifié !");
+      
+      // Mise à jour de l'interface utilisateur
+      document.getElementById('login-link')?.style.setProperty('display', 'none');
+      document.getElementById('register-link')?.style.setProperty('display', 'none');
+      document.getElementById('profile-link')?.style.setProperty('display', 'block');
+      document.getElementById('game-link')?.style.setProperty('display', 'block');
+      document.getElementById('logout-link')?.style.setProperty('display', 'block');
       
       // Stocker les infos de l'utilisateur dans le localStorage
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -45,11 +39,13 @@ async function checkAuthentication() {
       return true;
     } else {
       // L'utilisateur n'est pas connecté
-      document.getElementById('login-link').style.display = 'block';
-      document.getElementById('register-link').style.display = 'block';
-      document.getElementById('profile-link').style.display = 'none';
-      document.getElementById('game-link').style.display = 'none';
-      document.getElementById('logout-link').style.display = 'none';
+      console.log("L'utilisateur n'est pas authentifié !");
+      
+      document.getElementById('login-link')?.style.setProperty('display', 'block');
+      document.getElementById('register-link')?.style.setProperty('display', 'block');
+      document.getElementById('profile-link')?.style.setProperty('display', 'none');
+      document.getElementById('game-link')?.style.setProperty('display', 'none');
+      document.getElementById('logout-link')?.style.setProperty('display', 'none');
       
       // Supprimer les infos de l'utilisateur du localStorage
       localStorage.removeItem('user');
@@ -58,6 +54,15 @@ async function checkAuthentication() {
     } 
   } catch (error) {
     console.error('Erreur lors de la vérification de l\'authentification:', error);
+    
+    // En cas d'erreur, considérer l'utilisateur comme non connecté
+    document.getElementById('login-link')?.style.setProperty('display', 'block');
+    document.getElementById('register-link')?.style.setProperty('display', 'block');
+    document.getElementById('profile-link')?.style.setProperty('display', 'none');
+    document.getElementById('game-link')?.style.setProperty('display', 'none');
+    document.getElementById('logout-link')?.style.setProperty('display', 'none');
+    
+    localStorage.removeItem('user');
     return false;
   }
 }

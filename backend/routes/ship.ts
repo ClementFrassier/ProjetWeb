@@ -5,7 +5,7 @@ import { authMiddleware } from "../middleware/auth.ts";
 export const router = new Router();
 
 router
-  .post("/api/games/placeShipe", authMiddleware, placeShip)
+  .post("/api/games/placeShip", authMiddleware, placeShip)
   .get("/api/games/playerShips", authMiddleware, getPlayerShips)
   .post("/api/games/validateShipPlacement", authMiddleware, validateShipPlacement)
   .get("/api/games/shipStatus", authMiddleware, checkShipStatus);

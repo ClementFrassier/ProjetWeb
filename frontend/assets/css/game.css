@@ -1,0 +1,191 @@
+/* Base styles */
+#game-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  /* Game status */
+  #game-status {
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+  }
+  
+  #turn-indicator {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  
+  /* Game setup */
+  #game-setup {
+    background-color: #e7f5fe;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+  }
+  
+  .ships-selection {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+  }
+  
+  .ship-item {
+    background-color: #3498db;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: grab;
+    transition: all 0.2s;
+  }
+  
+  .ship-item:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+  }
+  
+  .ship-item.placed {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  button {
+    padding: 8px 16px;
+    margin: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  /* Game boards */
+  #game-boards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+  }
+  
+  .board-container {
+    text-align: center;
+  }
+  
+  .game-board {
+    display: grid;
+    grid-template-columns: repeat(10, 40px);
+    grid-template-rows: repeat(10, 40px);
+    gap: 2px;
+    background-color: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  .cell {
+    width: 40px;
+    height: 40px;
+    background-color: #bde0fe;
+    border: 1px solid #90c2e7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .cell:hover {
+    background-color: #a7d8ff;
+  }
+  
+  /* Ship styles */
+  .cell.ship {
+    background-color: #3498db;
+  }
+  
+  .cell.hit {
+    background-color: #e74c3c;
+    position: relative;
+  }
+  
+  .cell.hit::after {
+    content: 'X';
+    font-size: 24px;
+    color: white;
+  }
+  
+  .cell.miss {
+    background-color: #95a5a6;
+    position: relative;
+  }
+  
+  .cell.miss::after {
+    content: '•';
+    font-size: 24px;
+    color: white;
+  }
+  
+  /* Chat section */
+  #game-chat {
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 20px;
+  }
+  
+  #chat-messages {
+    height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: white;
+  }
+  
+  .chat-input {
+    display: flex;
+    gap: 10px;
+  }
+  
+  #message-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  /* Utility classes */
+  .hidden {
+    display: none !important;
+  }
+  
+  .active-phase {
+    display: block;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .game-board {
+      grid-template-columns: repeat(10, 30px);
+      grid-template-rows: repeat(10, 30px);
+    }
+    
+    .cell {
+      width: 30px;
+      height: 30px;
+    }
+  }
