@@ -70,15 +70,20 @@
   <script src="../assets/js/websocket.js"></script>
   <script>
     // Vérifier si l'utilisateur est connecté au chargement de la page
-    document.addEventListener('DOMContentLoaded', async () => {
-      const isAuthenticated = await checkAuthentication();
-      if (!isAuthenticated) {
-        alert("Vous devez être connecté pour accéder à cette page.");
-        window.location.href = "login.html";
-      } else {
+  document.addEventListener('DOMContentLoaded', async () => {
+    const isAuthenticated = await checkAuthentication();
+    if (!isAuthenticated) {
+      alert("Vous devez être connecté pour accéder à cette page.");
+      window.location.href = "login.html";
+    } else {
+    // S'assurer que la fonction est disponible dans l'espace global
+      if (typeof initializeGame === 'function') {
         initializeGame();
-      }
-    });
+      } else {
+        console.error("La fonction initializeGame n'est pas définie");
+    }
+  }
+});
 
     // Gérer la déconnexion
     document.getElementById('logout-link').addEventListener('click', (e) => {

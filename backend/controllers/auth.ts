@@ -75,7 +75,7 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body.json(); // <= Correction ici aussi
+    const body = await ctx.request.body.json(); 
     const { username, password } = body;
 
     if (!username || !password) {
