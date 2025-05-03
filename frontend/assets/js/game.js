@@ -398,7 +398,24 @@ function getUserId() {
   return user ? user.id : null;
 }
 
-// Remplacer la fonction addChatMessage de chat dans le addEventListener:
+// Fonction de création de partie (manquante dans le code original)
+async function createGame() {
+  try {
+    const response = await fetch(`${API_URL}/games/start`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors de la création de la partie:', error);
+    return { error: "Impossible de créer une partie" };
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const messageInput = document.getElementById('message-input');
   const sendButton = document.getElementById('send-message');
