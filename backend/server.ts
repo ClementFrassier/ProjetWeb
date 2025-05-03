@@ -42,7 +42,7 @@ app.use(shipRouter.routes());
 app.use(shipRouter.allowedMethods());
 
 // WebSocket setup
-app.use(async (ctx, next) => {
+app.use(async (ctx, next) => {  
   const upgrade = ctx.request.headers.get("upgrade");
   if (upgrade && upgrade.toLowerCase() === "websocket") {
     const socket = ctx.upgrade();

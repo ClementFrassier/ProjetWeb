@@ -14,6 +14,11 @@ function initWebSocket(currentGameId) {
   const user = JSON.parse(localStorage.getItem('user'));
   userId = user ? user.id : null;
   
+  if (!userId) {
+    console.error("Utilisateur non connecté");
+    return;
+  }
+  
   // URL de connexion WebSocket
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `${wsProtocol}//${window.location.hostname}:3000/ws/game/${gameId}`;
@@ -69,7 +74,7 @@ function handleWebSocketMessage(data) {
   switch (data.type) {
     case 'game_joined':
       // Un joueur a rejoint la partie
-      addChatMessage(`${data.username} a rejoint la partie.`);
+      addChatMessage(`${data.username || 'Un joueur'} a rejoint la partie.`);
       break;
       
     case 'game_start':
@@ -77,11 +82,19 @@ function handleWebSocketMessage(data) {
       document.getElementById('status-message').textContent = "La partie commence!";
       document.getElementById('opponent-board').classList.remove('hidden');
       gameStatus = 'playing';
+      isMyTurn = true; // Le premier joueur commence
+      document.getElementById('turn-indicator').textContent = "C'est votre tour";
+      document.getElementById('turn-indicator').classList.remove('hidden');
       break;
       
     case 'shot':
       // L'adversaire a tiré
       handleOpponentShot(data.x, data.y, data.hit, data.sunk);
+      break;
+      
+    case 'shot_result':
+      // Résultat de notre tir
+      handleShotResult(data.x, data.y, data.hit, data.sunk);
       break;
       
     case 'your_turn':
@@ -92,7 +105,7 @@ function handleWebSocketMessage(data) {
       
     case 'chat':
       // Message de chat
-      addChatMessage(`${data.username}: ${data.message}`);
+      addChatMessage(`${data.username || 'Adversaire'}: ${data.message}`);
       break;
       
     case 'game_over':
@@ -125,6 +138,30 @@ function handleOpponentShot(x, y, hit, sunk) {
   // Après le tir de l'adversaire, c'est notre tour
   isMyTurn = true;
   document.getElementById('turn-indicator').textContent = "C'est votre tour";
+}
+
+// Fonction pour gérer le résultat de notre tir
+function handleShotResult(x, y, hit, sunk) {
+  const cellId = `opponent-board-${x}-${y}`;
+  const cell = document.getElementById(cellId);
+  
+  if (cell) {
+    if (hit) {
+      cell.classList.add('hit');
+      addChatMessage(`Votre tir en (${x},${y}) a touché un navire ennemi!`);
+      
+      if (sunk) {
+        addChatMessage(`Vous avez coulé un navire ennemi!`);
+      }
+    } else {
+      cell.classList.add('miss');
+      addChatMessage(`Votre tir en (${x},${y}) a manqué.`);
+    }
+  }
+  
+  // Après notre tir, c'est le tour de l'adversaire
+  isMyTurn = false;
+  document.getElementById('turn-indicator').textContent = "Tour de l'adversaire";
 }
 
 // Fonction pour envoyer un message via WebSocket
