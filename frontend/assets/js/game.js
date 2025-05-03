@@ -203,6 +203,12 @@ async function playerReady() {
     document.getElementById('game-id').textContent = currentGameId;
     document.getElementById('status-message').textContent = "En attente d'un adversaire...";
   }
+
+  if (currentGameId) {
+    // Initialiser la connexion WebSocket
+    initWebSocket(currentGameId);
+  }
+  
   
   // Envoyer les placements de navires au serveur
   for (const ship of placedShips) {
@@ -302,44 +308,49 @@ async function handleShotClick(event) {
     return;
   }
   
-  // Envoyer le tir au serveur
-  const response = await makeShot(currentGameId, x, y);
-  if (response.error) {
-    alert(`Erreur: ${response.error}`);
-    return;
-  }
+  // Envoyer le tir via WebSocket au lieu de l'API REST
+  sendShot(x, y);
   
-  // Marquer la cellule en fonction du résultat
-  if (response.hit) {
-    event.target.classList.add('hit');
-    addChatMessage(`Vous avez touché un navire ennemi en (${x},${y})!`);
-  } else {
-    event.target.classList.add('miss');
-    addChatMessage(`Votre tir en (${x},${y}) a manqué.`);
-  }
-  
-  // Changer de tour
+  // Désactiver temporairement le tour du joueur jusqu'à réception de la réponse
   isMyTurn = false;
   document.getElementById('turn-indicator').textContent = "Tour de l'adversaire";
-  
-  // Dans une implémentation réelle, nous attendrions une notification du serveur
-  // pour le tour suivant via WebSocket. Ici, nous simulons avec un délai
-  setTimeout(() => {
-    checkGameStatus();
-  }, 2000);
 }
 
-// Vérifier s'il y a une partie en cours
-async function checkForExistingGame() {
-  // Cette fonction pourrait vérifier si le joueur a une partie en cours
-  // Pour simplifier, nous commençons toujours par une nouvelle partie
-  const existingGame = localStorage.getItem('currentGame');
+// Remplacer la fonction addChatMessage de chat dans le addEventListener:
+document.addEventListener('DOMContentLoaded', () => {
+  const messageInput = document.getElementById('message-input');
+  const sendButton = document.getElementById('send-message');
   
-  if (existingGame) {
-    currentGameId = existingGame;
-    checkGameStatus();
+  if (sendButton) {
+    sendButton.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message) {
+        // Envoyer le message via WebSocket
+        sendChatMessage(message);
+        
+        // Afficher le message localement
+        addChatMessage(`Vous: ${message}`);
+        messageInput.value = '';
+      }
+    });
   }
-}
+  
+  if (messageInput) {
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const message = messageInput.value.trim();
+        if (message) {
+          // Envoyer le message via WebSocket
+          sendChatMessage(message);
+          
+          // Afficher le message localement
+          addChatMessage(`Vous: ${message}`);
+          messageInput.value = '';
+        }
+      }
+    });
+  }
+});
 
 // Ajouter un message au chat
 function addChatMessage(message) {

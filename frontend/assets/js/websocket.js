@@ -1,66 +1,130 @@
 // frontend/assets/js/websocket.js
 
-// Cette version simple du websocket est incluse pour compléter la structure,
-// mais elle n'est pas implémentée dans notre version basique du jeu.
-// Dans une version plus avancée, on utiliserait les WebSockets pour
-// la communication en temps réel entre les joueurs.
-
+// Variable globale pour stocker la connexion WebSocket
 let socket = null;
+let gameId = null;
+let userId = null;
 
 // Fonction pour initialiser la connexion WebSocket
-function initWebSocket(gameId) {
-  // Dans une implémentation réelle, on se connecterait à un serveur WebSocket
-  // Exemple: const wsUrl = `ws://localhost:3000/ws/game/${gameId}`;
+function initWebSocket(currentGameId) {
+  // Stocker l'ID de la partie
+  gameId = currentGameId;
   
-  console.log("WebSocket non implémenté dans cette version basique");
+  // Récupérer l'ID de l'utilisateur depuis le localStorage
+  const user = JSON.parse(localStorage.getItem('user'));
+  userId = user ? user.id : null;
   
-  /* 
-  // Code pour une implémentation future:
+  // URL de connexion WebSocket
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${wsProtocol}//${window.location.hostname}:3000/ws/game/${gameId}`;
   
+  console.log(`Tentative de connexion WebSocket à ${wsUrl}`);
+  
+  // Créer une nouvelle connexion WebSocket
   socket = new WebSocket(wsUrl);
   
+  // Événement: connexion établie
   socket.onopen = () => {
     console.log('Connexion WebSocket établie');
+    
+    // Envoyer un message pour identifier le joueur
+    sendWebSocketMessage('join', { 
+      gameId: gameId, 
+      userId: userId 
+    });
   };
   
+  // Événement: réception d'un message
   socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    handleWebSocketMessage(data);
+    try {
+      const data = JSON.parse(event.data);
+      console.log('Message WebSocket reçu:', data);
+      handleWebSocketMessage(data);
+    } catch (error) {
+      console.error('Erreur lors du traitement du message WebSocket:', error);
+    }
   };
   
-  socket.onclose = () => {
-    console.log('Connexion WebSocket fermée');
+  // Événement: connexion fermée
+  socket.onclose = (event) => {
+    console.log(`Connexion WebSocket fermée. Code: ${event.code}, Raison: ${event.reason}`);
+    
+    // Tentative de reconnexion après 5 secondes
+    setTimeout(() => {
+      if (gameId) {
+        console.log('Tentative de reconnexion...');
+        initWebSocket(gameId);
+      }
+    }, 5000);
   };
   
+  // Événement: erreur
   socket.onerror = (error) => {
     console.error('Erreur WebSocket:', error);
   };
-  */
 }
 
 // Fonction pour gérer les messages reçus via WebSocket
 function handleWebSocketMessage(data) {
-  // Cette fonction traiterait les événements en temps réel
-  // comme les tirs de l'adversaire, les messages de chat, etc.
-  
   switch (data.type) {
+    case 'game_joined':
+      // Un joueur a rejoint la partie
+      addChatMessage(`${data.username} a rejoint la partie.`);
+      break;
+      
+    case 'game_start':
+      // La partie commence
+      document.getElementById('status-message').textContent = "La partie commence!";
+      document.getElementById('opponent-board').classList.remove('hidden');
+      gameStatus = 'playing';
+      break;
+      
     case 'shot':
-      // Traiter un tir de l'adversaire
-      // updatePlayerBoard(data.x, data.y, data.hit);
+      // L'adversaire a tiré
+      handleOpponentShot(data.x, data.y, data.hit, data.sunk);
       break;
+      
+    case 'your_turn':
+      // C'est au tour du joueur
+      isMyTurn = true;
+      document.getElementById('turn-indicator').textContent = "C'est votre tour";
+      break;
+      
     case 'chat':
-      // Afficher un message de chat
-      // addChatMessage(`${data.username}: ${data.message}`);
+      // Message de chat
+      addChatMessage(`${data.username}: ${data.message}`);
       break;
-    case 'game_status':
-      // Mettre à jour le statut de la partie
-      // updateGameStatus(data.status);
-      break;
-    case 'turn':
-      // Mettre à jour l'indicateur de tour
-      // updateTurnIndicator(data.is_your_turn);
+      
+    case 'game_over':
+      // Fin de partie
+      document.getElementById('status-message').textContent = `Partie terminée! ${data.winner === userId ? 'Vous avez gagné!' : 'Vous avez perdu!'}`;
+      gameStatus = 'finished';
       break;
   }
+}
+
+// Fonction pour gérer un tir de l'adversaire
+function handleOpponentShot(x, y, hit, sunk) {
+  const cellId = `player-board-${x}-${y}`;
+  const cell = document.getElementById(cellId);
+  
+  if (cell) {
+    if (hit) {
+      cell.classList.add('hit');
+      addChatMessage(`L'adversaire a touché un de vos navires en (${x},${y})!`);
+      
+      if (sunk) {
+        addChatMessage(`L'adversaire a coulé un de vos navires!`);
+      }
+    } else {
+      cell.classList.add('miss');
+      addChatMessage(`Le tir de l'adversaire en (${x},${y}) a manqué.`);
+    }
+  }
+  
+  // Après le tir de l'adversaire, c'est notre tour
+  isMyTurn = true;
+  document.getElementById('turn-indicator').textContent = "C'est votre tour";
 }
 
 // Fonction pour envoyer un message via WebSocket
@@ -78,10 +142,30 @@ function sendWebSocketMessage(type, data) {
   socket.send(JSON.stringify(message));
 }
 
+// Fonction pour envoyer un tir via WebSocket
+function sendShot(x, y) {
+  sendWebSocketMessage('shot', {
+    gameId: gameId,
+    userId: userId,
+    x: x,
+    y: y
+  });
+}
+
+// Fonction pour envoyer un message de chat
+function sendChatMessage(message) {
+  sendWebSocketMessage('chat', {
+    gameId: gameId,
+    userId: userId,
+    message: message
+  });
+}
+
 // Fermer la connexion WebSocket
 function closeWebSocket() {
   if (socket) {
     socket.close();
     socket = null;
+    gameId = null;
   }
 }
