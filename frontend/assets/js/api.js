@@ -1,7 +1,21 @@
-const API_URL = 'http://localhost:3000/api';
 
 // Fonction pour créer une nouvelle partie
-
+async function createGame() {
+  try {
+    const response = await fetch(`${API_URL}/games/start`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors de la création de la partie:', error);
+    return { error: "Impossible de créer une partie" };
+  }
+}
 
 // Fonction pour rejoindre une partie existante
 async function joinGame(gameId) {
@@ -587,3 +601,39 @@ async function getLeaderboard() {
     return { error: "Impossible de récupérer le classement" };
   }
 }
+
+async function placeShip(gameId, type, x, y, orientation) {
+  try {
+    const response = await fetch(`${API_URL}/games/placeShip`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        gameId,
+        type,
+        x_position: parseInt(x),     
+        y_position: parseInt(y),    
+        orientation
+      })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors du placement du navire:', error);
+    return { error: "Impossible de placer le navire" };
+  }
+}
+
+
+window.createGame = createGame;
+window.joinGame = joinGame;
+window.getGameDetails = getGameDetails;
+window.getActiveGames = getActiveGames;
+window.makeShot = makeShot;
+window.abandonGame = abandonGame;
+window.getUserProfile = getUserProfile;
+window.getUserStats = getUserStats;
+window.getLeaderboard = getLeaderboard;
+window.placeShip=placeShip;

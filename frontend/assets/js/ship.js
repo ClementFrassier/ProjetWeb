@@ -1,5 +1,3 @@
-// frontend/assets/js/ship.js
-const API_URL = 'http://localhost:3000/api';
 
 // Fonction pour placer un navire
 async function placeShip(gameId, type, x, y, orientation) {
@@ -113,3 +111,10 @@ function drawShip(boardId, x, y, size, orientation) {
     }
   }
 }
+
+
+window.placeShip = placeShip;
+window.validateShipPlacement = validateShipPlacement;
+window.getPlayerShips = getPlayerShips;
+window.checkShipStatus = checkShipStatus;
+window.drawShip = drawShip;

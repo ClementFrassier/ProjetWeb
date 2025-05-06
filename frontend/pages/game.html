@@ -63,27 +63,30 @@
     <p>&copy; 2025 Bataille Navale - Projet Web</p>
   </footer>
 
+
   <script src="../assets/js/auth.js"></script>
   <script src="../assets/js/api.js"></script>
   <script src="../assets/js/ship.js"></script>
-  <script src="../assets/js/game.js"></script>
   <script src="../assets/js/websocket.js"></script>
+  <script src="../assets/js/game.js"></script>
+
+
   <script>
     // Vérifier si l'utilisateur est connecté au chargement de la page
-  document.addEventListener('DOMContentLoaded', async () => {
-    const isAuthenticated = await checkAuthentication();
-    if (!isAuthenticated) {
-      alert("Vous devez être connecté pour accéder à cette page.");
-      window.location.href = "login.html";
-    } else {
-    // S'assurer que la fonction est disponible dans l'espace global
-      if (typeof initializeGame === 'function') {
-        initializeGame();
+    document.addEventListener('DOMContentLoaded', async () => {
+      const isAuthenticated = await checkAuthentication();
+      if (!isAuthenticated) {
+        alert("Vous devez être connecté pour accéder à cette page.");
+        window.location.href = "login.html";
       } else {
-        console.error("La fonction initializeGame n'est pas définie");
-    }
-  }
-});
+        // S'assurer que la fonction est disponible dans l'espace global
+        if (typeof initializeGame === 'function') {
+          initializeGame();
+        } else {
+          console.error("La fonction initializeGame n'est pas définie");
+        }
+      }
+    });
 
     // Gérer la déconnexion
     document.getElementById('logout-link').addEventListener('click', (e) => {

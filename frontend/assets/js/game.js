@@ -1,5 +1,3 @@
-// frontend/assets/js/game.js
-
 // Variables globales
 let currentGameId = null;
 let isMyTurn = false;
@@ -8,11 +6,97 @@ let selectedShipType = null;
 let placedShips = [];
 let gameStatus = 'setup'; // 'setup', 'playing', 'finished'
 
+
+/**
+ * Vérifie si les fonctions requises sont disponibles
+ * @returns {boolean} Vrai si toutes les fonctions sont disponibles
+ */
+function checkRequiredFunctions() {
+  // Liste des fonctions requises
+  const requiredFunctions = [
+    'createGame', 
+    'getActiveGames', 
+    'getGameDetails', 
+    'placeShip', 
+    'getPlayerShips'
+  ];
+  
+  // Vérifier chaque fonction
+  for (const func of requiredFunctions) {
+    if (typeof window[func] !== 'function') {
+      console.error(`Fonction requise '${func}' non disponible`);
+      return false;
+    }
+  }
+  
+  return true;
+}
+
 // Initialiser le jeu
 function initializeGame() {
+  // Vérifier si les fonctions nécessaires sont disponibles
+  if (!checkRequiredFunctions()) {
+    alert("Certaines fonctions requises ne sont pas disponibles. Veuillez rafraîchir la page.");
+    return;
+  }
+  
   createGameBoards();
   setupEventListeners();
-  checkForExistingGame(); // Cette fonction est maintenant définie plus bas
+  checkForExistingGame();
+}
+// Vérifier si une partie existe déjà
+async function checkForExistingGame() {
+  try {
+    if (typeof window.getActiveGames !== 'function') {
+      console.error('getActiveGames is not available');
+      return;
+    }
+    
+    // Récupérer les parties actives
+    const response = await window.getActiveGames();
+    if (response.error) {
+      console.error(`Erreur: ${response.error}`);
+      return;
+    }
+
+    // Si des parties actives existent pour ce joueur
+    if (response.games && response.games.length > 0) {
+      // Utiliser la première partie active trouvée
+      const game = response.games[0];
+      currentGameId = game.id;
+      document.getElementById('game-id').textContent = currentGameId;
+      
+      // Vérifier l'état de la partie
+      checkGameStatus();
+      
+      // Si la partie est en cours, initialiser WebSocket
+      if (game.status === 'in_progress' || game.status === 'setup') {
+        initWebSocket(currentGameId);
+      }
+      
+      // Charger les navires du joueur si disponible
+      try {
+        const shipsResponse = await window.getPlayerShips(currentGameId);
+        if (!shipsResponse.error && shipsResponse.ships) {
+          // Afficher les navires sur la grille
+          shipsResponse.ships.forEach(ship => {
+            placeShipVisually(ship.x_position, ship.y_position, getShipSize(ship.type), ship.orientation);
+            
+            // Marquer ce navire comme placé dans l'interface
+            const shipElement = document.querySelector(`.ship-item[data-ship="${ship.type}"]`);
+            if (shipElement) {
+              shipElement.classList.add('placed');
+              shipElement.draggable = false;
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement des navires:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Erreur lors de la vérification des parties existantes:', error);
+  }
 }
 
 // Créer les grilles de jeu
@@ -82,56 +166,6 @@ function setupEventListeners() {
   // Bouton "Prêt"
   const readyBtn = document.getElementById('ready-btn');
   readyBtn.addEventListener('click', playerReady);
-}
-
-// Vérifier si une partie existe déjà
-async function checkForExistingGame() {
-  try {
-    // Récupérer les parties actives
-    const response = await getActiveGames();
-    if (response.error) {
-      console.error(`Erreur: ${response.error}`);
-      return;
-    }
-
-    // Si des parties actives existent pour ce joueur
-    if (response.games && response.games.length > 0) {
-      // Utiliser la première partie active trouvée
-      const game = response.games[0];
-      currentGameId = game.id;
-      document.getElementById('game-id').textContent = currentGameId;
-      
-      // Vérifier l'état de la partie
-      checkGameStatus();
-      
-      // Si la partie est en cours, initialiser WebSocket
-      if (game.status === 'in_progress' || game.status === 'setup') {
-        initWebSocket(currentGameId);
-      }
-      
-      // Charger les navires du joueur si disponible
-      try {
-        const shipsResponse = await getPlayerShips(currentGameId);
-        if (!shipsResponse.error && shipsResponse.ships) {
-          // Afficher les navires sur la grille
-          shipsResponse.ships.forEach(ship => {
-            placeShipVisually(ship.x_position, ship.y_position, getShipSize(ship.type), ship.orientation);
-            
-            // Marquer ce navire comme placé dans l'interface
-            const shipElement = document.querySelector(`.ship-item[data-ship="${ship.type}"]`);
-            if (shipElement) {
-              shipElement.classList.add('placed');
-              shipElement.draggable = false;
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Erreur lors du chargement des navires:', error);
-      }
-    }
-  } catch (error) {
-    console.error('Erreur lors de la vérification des parties existantes:', error);
-  }
 }
 
 // Gestion du clic sur une cellule de la grille du joueur (placement des navires)
@@ -245,7 +279,7 @@ async function playerReady() {
   // Si aucune partie n'est créée, en créer une nouvelle
   if (!currentGameId) {
     try {
-      const response = await createGame();
+      const response = await window.createGame();
       if (response.error) {
         alert(`Erreur: ${response.error}`);
         return;
@@ -268,7 +302,8 @@ async function playerReady() {
   // Envoyer les placements de navires au serveur
   for (const ship of placedShips) {
     try {
-      const placeResponse = await placeShip(
+      const placeResponse = await window.placeShip(
+
         currentGameId,
         ship.type,
         ship.x,
@@ -296,12 +331,14 @@ async function playerReady() {
   checkGameStatus();
 }
 
+
+
 // Vérifier l'état de la partie
 async function checkGameStatus() {
   if (!currentGameId) return;
   
   try {
-    const response = await getGameDetails(currentGameId);
+    const response = await window.getGameDetails(currentGameId);
     if (response.error) {
       alert(`Erreur: ${response.error}`);
       return;
@@ -396,24 +433,6 @@ function addChatMessage(message) {
 function getUserId() {
   const user = JSON.parse(localStorage.getItem('user'));
   return user ? user.id : null;
-}
-
-// Fonction de création de partie (manquante dans le code original)
-async function createGame() {
-  try {
-    const response = await fetch(`${API_URL}/games/start`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Erreur lors de la création de la partie:', error);
-    return { error: "Impossible de créer une partie" };
-  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

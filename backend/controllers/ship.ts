@@ -4,9 +4,11 @@ import { db } from "../config/db.ts";
 export const placeShip  = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
+        // Correction: utiliser ctx.request.body().value au lieu de ctx.request.body.json()
+        const body = await ctx.request.body().value;
+        const { gameId, x_position, y_position, orientation, type } = body;
 
-        const { gameId,x_position, y_position,orientation,type } = await ctx.request.body().value;
-
+        
         if (!gameId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "ID de partie requis" };
@@ -62,11 +64,11 @@ export const placeShip  = async (ctx: Context) => {
     }
 };
 
-export const getPlayerShips   = async (ctx: Context) => {
+export const getPlayerShips = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-
-        const { gameId } = await ctx.request.body().value;
+        const body = await ctx.request.body().value;
+        const { gameId } = body;
 
         if (!gameId) {
             ctx.response.status = 400;
@@ -74,10 +76,11 @@ export const getPlayerShips   = async (ctx: Context) => {
             return;
         }
 
+        // Correction: virgule remplacée par AND dans la requête SQL
         const ships = await db.query(
-            "SELECT * FROM ships WHERE game_id = ?,user_id=?",
-            [gameId,userId]
-          );
+            "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
+            [gameId, userId]
+        );
 
         if (ships.length === 0) {
             ctx.response.status = 404;
@@ -86,7 +89,7 @@ export const getPlayerShips   = async (ctx: Context) => {
         }
 
         ctx.response.status = 200;
-        ctx.response.body = { Ships : ships };
+        ctx.response.body = { Ships: ships };
 
     }catch (error) {
         ctx.response.status = 500;
@@ -94,19 +97,19 @@ export const getPlayerShips   = async (ctx: Context) => {
     }
 };
 
-export const validateShipPlacement    = async (ctx: Context) => {
+export const validateShipPlacement = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-
-        const { gameId,x_position,y_position,orientation,size } = await ctx.request.body().value;
+        const body = await ctx.request.body().value;
+        const { gameId, x_position, y_position, orientation, size } = body;
 
         if (!gameId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "ID de partie requis" };
             return;
-          }
+        }
       
-        if (x_position === undefined || y_position === undefined || orientation === undefined|| size === undefined) {
+        if (x_position === undefined || y_position === undefined || orientation === undefined || size === undefined) {
             ctx.response.status = 400;
             ctx.response.body = { message: "Informations du bateau requise" };
             return;
@@ -118,22 +121,22 @@ export const validateShipPlacement    = async (ctx: Context) => {
             return;
         }
 
-
-        if(orientation=='horizontal' && x_position+size>10){
+        if (orientation === 'horizontal' && x_position + size > 10) {
             ctx.response.status = 400;
             ctx.response.body = { message: "Le bateau dépasse de la grille" };
             return;
         }
 
-        if(orientation=='vertical' && y_position+size>10){
+        if (orientation === 'vertical' && y_position + size > 10) {
             ctx.response.status = 400;
             ctx.response.body = { message: "Le bateau dépasse de la grille" };
             return;
         }
 
+        // Correction: virgule remplacée par AND dans la requête SQL
         const ships = await db.query(
-            "SELECT * FROM ships WHERE game_id = ?,user_id=?",
-            [gameId,userId]
+            "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
+            [gameId, userId]
         );
 
         if (ships.length === 0) {
@@ -143,29 +146,28 @@ export const validateShipPlacement    = async (ctx: Context) => {
         }
 
         var i = 0;
-        var positionValide:boolean=true;
+        var positionValide = true;
 
-        while(i<ships.length && positionValide==true){
-            if(orientation=='horizontal' && x_position+size<ships[i].x_position+ships[i].size && x_position>ships[i].x_position ){
+        while (i < ships.length && positionValide === true) {
+            if (orientation === 'horizontal' && x_position + size < ships[i].x_position + ships[i].size && x_position > ships[i].x_position) {
                 ctx.response.status = 400;
-                positionValide=false;
+                positionValide = false;
             }
-            if(orientation=='vertical' && y_position+size<ships[i].y_position+ships[i].size && y_position>ships[i].y_position ){
+            if (orientation === 'vertical' && y_position + size < ships[i].y_position + ships[i].size && y_position > ships[i].y_position) {
                 ctx.response.status = 400;
-                positionValide=false;
+                positionValide = false;
             }
-            i+=1;
+            i += 1;
         }
 
-        if(positionValide==false){
+        if (positionValide === false) {
             ctx.response.status = 404;
             ctx.response.body = { message: "Bateau sur un autre bateau" };
             return;
         }
         
-
         ctx.response.status = 200;
-        ctx.response.body = { message : "Position du bateau valide" };
+        ctx.response.body = { message: "Position du bateau valide" };
 
     }catch (error) {
         ctx.response.status = 500;
@@ -173,11 +175,11 @@ export const validateShipPlacement    = async (ctx: Context) => {
     }
 };
 
-export const checkShipStatus     = async (ctx: Context) => {
+export const checkShipStatus = async (ctx: Context) => {
     try {
-
         const userId = ctx.state.user.id;
-        const { gameId } = await ctx.request.body().value;
+        const body = await ctx.request.body().value;
+        const { gameId } = body;
 
         if (!gameId) {
             ctx.response.status = 400;
@@ -185,9 +187,10 @@ export const checkShipStatus     = async (ctx: Context) => {
             return;
         }
 
+        // Correction: virgule remplacée par AND dans la requête SQL
         const shipsStatus = await db.query(
-            "SELECT id,is_sunk,hit_count FROM ships WHERE game_id = ?,user_id=?",
-            [gameId,userId]
+            "SELECT id, is_sunk, hit_count FROM ships WHERE game_id = ? AND user_id = ?",
+            [gameId, userId]
         );
 
         if (shipsStatus.length === 0) {
@@ -197,8 +200,7 @@ export const checkShipStatus     = async (ctx: Context) => {
         }
 
         ctx.response.status = 200;
-        ctx.response.body = { ShipsStatus : shipsStatus };
-
+        ctx.response.body = { ShipsStatus: shipsStatus };
 
     }catch (error) {
         ctx.response.status = 500;
