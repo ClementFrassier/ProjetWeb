@@ -309,17 +309,36 @@ export const makeShot = async (ctx: Context) => {
 };
 
 
+// Fonction modifiée - récupère les parties de l'utilisateur
 export const getActiveGames = async (ctx: Context) => {
   try{
     const userId = ctx.state.user.id;
+    
+    // CHANGEMENT ICI : on récupère uniquement les parties où l'utilisateur est impliqué
+    const games = await db.query(
+      "SELECT * FROM games WHERE (player1_id = ? OR player2_id = ?) AND status != 'finished'",
+      [userId, userId]
+    );
 
-    // La condition dans votre requête SQL était incorrecte
+    ctx.response.status = 200;
+    ctx.response.body = { games };
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { message: "Erreur serveur", error: error.message };
+  }
+};
+
+// NOUVELLE FONCTION - récupère les parties disponibles à rejoindre
+export const getAvailableGames = async (ctx: Context) => {
+  try{
+    const userId = ctx.state.user.id;
+
     const games = await db.query(
       "SELECT * FROM games WHERE status = 'waiting' AND player1_id != ?",
       [userId]
     );
 
-    ctx.response.status = 200; // Changer 201 en 200 car c'est une requête GET
+    ctx.response.status = 200;
     ctx.response.body = { games };
   } catch (error) {
     ctx.response.status = 500;

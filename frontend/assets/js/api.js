@@ -654,6 +654,23 @@ async function getActiveGames() {
   }
 }
 
+async function getAvailableGames() {
+  try {
+    const response = await fetch(`${API_URL}/games/available`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    // ... reste du code ...
+  } catch (error) {
+    console.error("Erreur getAvailableGames:", error);
+    return { error: "Erreur de connexion" };
+  }
+}
+
+
 // Fonction pour effectuer un tir
 async function makeShot(gameId, x, y) {
   try {

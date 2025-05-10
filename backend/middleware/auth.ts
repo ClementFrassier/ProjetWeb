@@ -3,11 +3,14 @@ import { verifyJWT } from "../utils/jwt.ts";
 
 export const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
   try {
+    // Debug: afficher toutes les headers
+    console.log("Auth middleware - URL:", ctx.request.url.pathname);
+    console.log("Auth middleware - Cookies header:", ctx.request.headers.get("cookie"));
+    
     // Récupérer le token depuis les cookies
     const token = await ctx.cookies.get("auth_token");
     
-    // Debug
-    console.log("Auth middleware - cookie token:", token);
+    console.log("Auth middleware - cookie token extrait:", token);
     
     if (!token) {
       // Vérifier si le token est dans l'en-tête Authorization à la place
@@ -18,6 +21,7 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
           const payload = await verifyJWT(bearerToken);
           if (payload && payload.id) {
             ctx.state.user = payload;
+            console.log("Auth middleware - utilisateur authentifié via Bearer:", payload.id);
             await next();
             return;
           }
@@ -26,6 +30,7 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
         }
       }
       
+      console.log("Auth middleware - Aucun token trouvé");
       ctx.response.status = 401;
       ctx.response.body = { message: "Authentification requise" };
       return;
@@ -34,12 +39,14 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     const payload = await verifyJWT(token);
     
     if (!payload || !payload.id) {
+      console.log("Auth middleware - Token invalide");
       ctx.response.status = 401;
       ctx.response.body = { message: "Token invalide" };
       return;
     }
 
     ctx.state.user = payload;
+    console.log("Auth middleware - utilisateur authentifié:", payload.id);
     await next();
     
   } catch (error) {
