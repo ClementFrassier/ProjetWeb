@@ -1,18 +1,17 @@
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
 
-export const placeShip  = async (ctx: Context) => {
+export const placeShip = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
         const body = await ctx.request.body().value;
         const { gameId, x_position, y_position, orientation, type } = body;
 
-        
         if (!gameId) {
             ctx.response.status = 400;
             ctx.response.body = { message: "ID de partie requis" };
             return;
-          }
+        }
       
         if (x_position === undefined || y_position === undefined || orientation === undefined) {
             ctx.response.status = 400;
@@ -29,35 +28,35 @@ export const placeShip  = async (ctx: Context) => {
         let size: number;
         switch (type) {
             case "carrier":
-            size = 5;
-            break;
-        case "battleship":
-            size = 4;
-            break;
-        case "cruiser":
-            size = 3;
-            break;
-        case "submarine":
-            size = 3;
-            break;
-        case "destroyer":
-            size = 2;
-            break;
-        default:
-            ctx.response.status = 400;
-            ctx.response.body = { message: "Type de bateau invalide" };
-            return;
+                size = 5;
+                break;
+            case "battleship":
+                size = 4;
+                break;
+            case "cruiser":
+                size = 3;
+                break;
+            case "submarine":
+                size = 3;
+                break;
+            case "destroyer":
+                size = 2;
+                break;
+            default:
+                ctx.response.status = 400;
+                ctx.response.body = { message: "Type de bateau invalide" };
+                return;
         }
 
         // Insérer le bateau dans la base de données
         await db.query(
-        "INSERT INTO ships (game_id, user_id, type, x_position, y_position, orientation, size) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [gameId, userId, type, x_position, y_position, orientation, size]
+            "INSERT INTO ships (game_id, user_id, type, x_position, y_position, orientation, size) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [gameId, userId, type, x_position, y_position, orientation, size]
         );
 
         ctx.response.status = 201; // Created
         ctx.response.body = { message: "Bateau placé avec succès" };
-    }catch (error) {
+    } catch (error) {
         ctx.response.status = 500;
         ctx.response.body = { message: "Erreur serveur", error: error.message };
     }
@@ -66,7 +65,7 @@ export const placeShip  = async (ctx: Context) => {
 export const getPlayerShips = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        const gameId = ctx.request.url.searchParams.get("gameId"); // Récupérer depuis les query params
+        const gameId = ctx.request.url.searchParams.get("gameId");
 
         if (!gameId) {
             ctx.response.status = 400;
@@ -79,10 +78,8 @@ export const getPlayerShips = async (ctx: Context) => {
             [gameId, userId]
         );
 
- 
-
         ctx.response.status = 200;
-        ctx.response.body = { ships : ships || []}; // Note: j'ai changé "Ships" en "ships" pour la cohérence
+        ctx.response.body = { ships: ships || [] };
     } catch (error) {
         ctx.response.status = 500;
         ctx.response.body = { message: "Erreur serveur", error: error.message };
@@ -125,35 +122,59 @@ export const validateShipPlacement = async (ctx: Context) => {
             return;
         }
 
-        // Correction: virgule remplacée par AND dans la requête SQL
         const ships = await db.query(
             "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
             [gameId, userId]
         );
 
         if (ships.length === 0) {
-            ctx.response.status = 404;
-            ctx.response.body = { message: "Bateau non trouvée" };
+            ctx.response.status = 200;
+            ctx.response.body = { message: "Position du bateau valide" };
             return;
         }
 
-        var i = 0;
-        var positionValide = true;
+        let i = 0;
+        let positionValide = true;
 
         while (i < ships.length && positionValide === true) {
-            if (orientation === 'horizontal' && x_position + size < ships[i].x_position + ships[i].size && x_position > ships[i].x_position) {
-                ctx.response.status = 400;
-                positionValide = false;
+            const ship = ships[i];
+            // Vérification de chevauchement avec d'autres navires
+            if (orientation === 'horizontal') {
+                // Vérifier si les navires horizontaux se chevauchent
+                if (ship[6] === 'horizontal' && 
+                    y_position === ship[5] &&
+                    ((x_position >= ship[4] && x_position < ship[4] + ship[7]) ||
+                     (x_position + size > ship[4] && x_position + size <= ship[4] + ship[7]) ||
+                     (x_position <= ship[4] && x_position + size > ship[4] + ship[7]))) {
+                    positionValide = false;
+                }
+                // Vérifier si un navire horizontal croise un navire vertical
+                if (ship[6] === 'vertical' &&
+                    x_position <= ship[4] && x_position + size > ship[4] &&
+                    y_position >= ship[5] && y_position < ship[5] + ship[7]) {
+                    positionValide = false;
+                }
+            } else {
+                // Vérifier si les navires verticaux se chevauchent
+                if (ship[6] === 'vertical' && 
+                    x_position === ship[4] &&
+                    ((y_position >= ship[5] && y_position < ship[5] + ship[7]) ||
+                     (y_position + size > ship[5] && y_position + size <= ship[5] + ship[7]) ||
+                     (y_position <= ship[5] && y_position + size > ship[5] + ship[7]))) {
+                    positionValide = false;
+                }
+                // Vérifier si un navire vertical croise un navire horizontal
+                if (ship[6] === 'horizontal' &&
+                    y_position <= ship[5] && y_position + size > ship[5] &&
+                    x_position >= ship[4] && x_position < ship[4] + ship[7]) {
+                    positionValide = false;
+                }
             }
-            if (orientation === 'vertical' && y_position + size < ships[i].y_position + ships[i].size && y_position > ships[i].y_position) {
-                ctx.response.status = 400;
-                positionValide = false;
-            }
-            i += 1;
+            i++;
         }
 
-        if (positionValide === false) {
-            ctx.response.status = 404;
+        if (!positionValide) {
+            ctx.response.status = 400;
             ctx.response.body = { message: "Bateau sur un autre bateau" };
             return;
         }
@@ -161,7 +182,7 @@ export const validateShipPlacement = async (ctx: Context) => {
         ctx.response.status = 200;
         ctx.response.body = { message: "Position du bateau valide" };
 
-    }catch (error) {
+    } catch (error) {
         ctx.response.status = 500;
         ctx.response.body = { message: "Erreur serveur", error: error.message };
     }
@@ -179,7 +200,6 @@ export const checkShipStatus = async (ctx: Context) => {
             return;
         }
 
-        // Correction: virgule remplacée par AND dans la requête SQL
         const shipsStatus = await db.query(
             "SELECT id, is_sunk, hit_count FROM ships WHERE game_id = ? AND user_id = ?",
             [gameId, userId]
@@ -187,14 +207,21 @@ export const checkShipStatus = async (ctx: Context) => {
 
         if (shipsStatus.length === 0) {
             ctx.response.status = 404;
-            ctx.response.body = { message: "Bateau non trouvée" };
+            ctx.response.body = { message: "Aucun bateau trouvé" };
             return;
         }
 
-        ctx.response.status = 200;
-        ctx.response.body = { ShipsStatus: shipsStatus };
+        // Convertir les tableaux en objets pour une meilleure lisibilité
+        const formattedShips = shipsStatus.map(ship => ({
+            id: ship[0],
+            is_sunk: ship[1],
+            hit_count: ship[2]
+        }));
 
-    }catch (error) {
+        ctx.response.status = 200;
+        ctx.response.body = { shipsStatus: formattedShips };
+
+    } catch (error) {
         ctx.response.status = 500;
         ctx.response.body = { message: "Erreur serveur", error: error.message };
     }

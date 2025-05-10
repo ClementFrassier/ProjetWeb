@@ -12,10 +12,8 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body.json(); // Get the body reader // Await the value to get the parsed body
+    const body = await ctx.request.body.json();
     const { username, email, password } = body;
-
-
 
     if (!username || !email || !password) {
       ctx.response.status = 400;
@@ -55,7 +53,6 @@ export const registerUser = async (ctx: Context) => {
         "INSERT INTO stats (user_id) VALUES (?)",
         [newUser[0].id]
       );
-
     }
 
     ctx.response.status = 201;
@@ -111,20 +108,15 @@ export const loginUser = async (ctx: Context) => {
       ctx.response.body = { message: "MDP incorrects" };
       return;
     }
+    
     if (!user || !user[0] || !user[1]) {
       ctx.response.status = 401;
       ctx.response.body = { message: "Utilisateur invalide" };
       return;
     }
 
-    console.log("Utilisateur:", user[0]);
-    console.log("Utilisateur:", user[1]);
-    console.log("Payload:", {
-   id: user[0],
-    username: user[1],
-    exp: Math.floor(Date.now() / 1000) + 60 * 60,
-    });
-
+    console.log("Utilisateur ID:", user[0]);
+    console.log("Utilisateur username:", user[1]);
 
     const token = await createJWT({
       id: user[0],
@@ -132,18 +124,18 @@ export const loginUser = async (ctx: Context) => {
       exp: Math.floor(Date.now() / 1000) + 60 * 60, // expire dans 1 heure
     });
 
-
     await db.execute(
       "UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
       [user[0]]
     );
 
+    // MODIFICATION IMPORTANTE : Configuration du cookie
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      path: "/", //?
-      maxAge: 60 * 60 * 1000,
+      secure: false, // false car on est en localhost
+      sameSite: "lax", // Important pour CORS
+      path: "/",
+      maxAge: 60 * 60 * 1000, // 1 heure en millisecondes
     });
 
     ctx.response.status = 200;
@@ -164,7 +156,14 @@ export const loginUser = async (ctx: Context) => {
 
 export const logoutUser = async (ctx: Context) => {
   try {
-    ctx.cookies.delete("auth_token");
+    // Supprimer le cookie en le remplaçant par un cookie expiré
+    ctx.cookies.set("auth_token", "", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+      expires: new Date(0), // Date dans le passé pour expirer le cookie
+    });
     
     ctx.response.status = 200;
     ctx.response.body = { message: "Déconnexion réussie" };
@@ -186,10 +185,17 @@ export const checkAuth = async (ctx: Context) => {
       return;
     }
 
+    // Conversion du tableau en objet
+    const user = {
+      id: users[0][0],
+      username: users[0][1],
+      email: users[0][2]
+    };
+
     ctx.response.status = 200;
     ctx.response.body = { 
       authenticated: true,
-      user: users[0],
+      user: user,
     };
   } catch (error) {
     console.error("Erreur lors de la vérification d'authentification:", error);

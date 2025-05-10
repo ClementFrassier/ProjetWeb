@@ -1,6 +1,19 @@
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
 
+// Fonction utilitaire pour convertir les lignes de la DB en objet
+function convertRowToGame(row: any[]) {
+  return {
+    id: row[0],
+    player1_id: row[1],
+    player2_id: row[2],
+    status: row[3],
+    winner_id: row[4],
+    created_at: row[5],
+    updated_at: row[6]
+  };
+}
+
 export const startGame = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
@@ -47,12 +60,12 @@ export const startGame = async (ctx: Context) => {
     };
   }
 };
-export const joinGame  = async (ctx: Context) => {
-  try{
-    const userId = ctx.state.user.id;
 
+export const joinGame = async (ctx: Context) => {
+  try {
+    const userId = ctx.state.user.id;
     const body = await ctx.request.body().value;
-    const { gameId } = body
+    const { gameId } = body;
 
     if (!gameId) {
       ctx.response.status = 400;
@@ -73,13 +86,13 @@ export const joinGame  = async (ctx: Context) => {
 
     const game = games[0];
 
-    if (game.status !== "waiting") {
+    if (game[3] !== "waiting") {
       ctx.response.status = 400;
       ctx.response.body = { message: "Cette partie n'est pas disponible" };
       return;
     }
 
-    if (game.player1_id === userId) {
+    if (game[1] === userId) {
       ctx.response.status = 400;
       ctx.response.body = { message: "Vous ne pouvez pas rejoindre votre propre partie" };
       return;
@@ -95,16 +108,20 @@ export const joinGame  = async (ctx: Context) => {
       message: "Partie rejointe avec succès", 
       gameId: gameId 
     };
-  }catch (error) {
-      ctx.response.status = 500;
-      ctx.response.body = { message: "Erreur serveur", error: error.message };
-    }
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { message: "Erreur serveur", error: error.message };
+  }
 };
 
 export const getGameDetails = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
     const gameId = ctx.request.url.searchParams.get("id");
+
+    // Debug
+    console.log("getGameDetails - userId:", userId);
+    console.log("getGameDetails - gameId:", gameId);
 
     // Vérification stricte de l'ID
     if (!gameId || gameId === 'undefined' || gameId === 'null') {
@@ -117,9 +134,11 @@ export const getGameDetails = async (ctx: Context) => {
     }
     
     const games = await db.query(
-      "SELECT id, player1_id, player2_id, status, winner_id, created_at, updated_at FROM games WHERE id = ?",
+      "SELECT * FROM games WHERE id = ?",
       [gameId]
     );
+
+    console.log("getGameDetails - résultat requête:", games);
 
     if (games.length === 0) {
       ctx.response.status = 404;
@@ -131,8 +150,15 @@ export const getGameDetails = async (ctx: Context) => {
     }
     
     const game = games[0];
+    console.log("getGameDetails - game row:", game);
     
-    if (game.player1_id !== userId && game.player2_id !== userId) {
+    // Vérification des permissions (comparaison avec game[1] et game[2])
+    if (game[1] !== userId && game[2] !== userId) {
+      console.log("getGameDetails - accès refusé:", {
+        player1: game[1],
+        player2: game[2],
+        userId: userId
+      });
       ctx.response.status = 403;
       ctx.response.body = { error: "Accès refusé" };
       return;
@@ -141,17 +167,10 @@ export const getGameDetails = async (ctx: Context) => {
     // Retourner un objet structuré
     ctx.response.status = 200;
     ctx.response.body = {
-      game: {
-        id: game.id,
-        player1_id: game.player1_id,
-        player2_id: game.player2_id,
-        status: game.status, // Le statut est déjà une string
-        winner_id: game.winner_id,
-        created_at: game.created_at,
-        updated_at: game.updated_at
-      }
+      game: convertRowToGame(game)
     };
   } catch (error) {
+    console.error("Erreur getGameDetails:", error);
     ctx.response.status = 500;
     ctx.response.body = { 
       error: "Erreur serveur",
@@ -160,12 +179,9 @@ export const getGameDetails = async (ctx: Context) => {
   }
 };
 
-
-
 export const makeShot = async (ctx: Context) => {
-  try{
+  try {
     const userId = ctx.state.user.id;
-
     const body = await ctx.request.body().value;
     const { gameId, x_position, y_position } = body;
     
@@ -195,14 +211,14 @@ export const makeShot = async (ctx: Context) => {
     const game = games[0];
     
     // Vérifier que la partie est en cours
-    if (game.status !== "in_progress") {
+    if (game[3] !== "in_progress") {
       ctx.response.status = 400;
       ctx.response.body = { message: "La partie n'est pas en cours" };
       return;
     }
     
     // Vérifier que l'utilisateur est bien un joueur de cette partie
-    if (game.player1_id !== userId && game.player2_id !== userId) {
+    if (game[1] !== userId && game[2] !== userId) {
       ctx.response.status = 403;
       ctx.response.body = { message: "Vous n'êtes pas un joueur de cette partie" };
       return;
@@ -210,10 +226,10 @@ export const makeShot = async (ctx: Context) => {
 
     // Déterminer l'adversaire
     let opponentId = null;
-    if (game.player1_id === userId) {
-      opponentId = game.player2_id;
+    if (game[1] === userId) {
+      opponentId = game[2];
     } else {
-      opponentId = game.player1_id;
+      opponentId = game[1];
     }
 
     if (opponentId === null) {
@@ -233,7 +249,7 @@ export const makeShot = async (ctx: Context) => {
 
     if (ships.length > 0) {
       isHit = true;
-      shipId = ships[0].id;
+      shipId = ships[0][0];
       
       // Vérifier si le navire est coulé après ce tir
       const hits = await db.query(
@@ -242,9 +258,9 @@ export const makeShot = async (ctx: Context) => {
       );
       
       // +1 pour inclure le tir actuel
-      const hitCount = hits[0].hit_count + 1;
+      const hitCount = hits[0][0] + 1;
       
-      if (hitCount >= ships[0].size) {
+      if (hitCount >= ships[0][7]) {
         // Marquer le navire comme coulé
         await db.query(
           "UPDATE ships SET is_sunk = TRUE WHERE id = ?",
@@ -277,7 +293,7 @@ export const makeShot = async (ctx: Context) => {
       [gameId, opponentId]
     );
     
-    if (remainingShips[0].count === 0) {
+    if (remainingShips[0][0] === 0) {
       // Fin de partie
       await db.query(
         "UPDATE games SET status = 'finished', winner_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -308,13 +324,12 @@ export const makeShot = async (ctx: Context) => {
   }
 };
 
-
 // Fonction modifiée - récupère les parties de l'utilisateur
 export const getActiveGames = async (ctx: Context) => {
-  try{
+  try {
     const userId = ctx.state.user.id;
     
-    // CHANGEMENT ICI : on récupère uniquement les parties où l'utilisateur est impliqué
+    // Récupérer uniquement les parties où l'utilisateur est impliqué
     const games = await db.query(
       "SELECT * FROM games WHERE (player1_id = ? OR player2_id = ?) AND status != 'finished'",
       [userId, userId]
@@ -330,7 +345,7 @@ export const getActiveGames = async (ctx: Context) => {
 
 // NOUVELLE FONCTION - récupère les parties disponibles à rejoindre
 export const getAvailableGames = async (ctx: Context) => {
-  try{
+  try {
     const userId = ctx.state.user.id;
 
     const games = await db.query(
@@ -347,9 +362,8 @@ export const getAvailableGames = async (ctx: Context) => {
 };
 
 export const abandonGame = async (ctx: Context) => {
-  try{
+  try {
     const userId = ctx.state.user.id;
-
     const body = await ctx.request.body().value;
     const { gameId } = body;
 
@@ -372,43 +386,41 @@ export const abandonGame = async (ctx: Context) => {
 
     const game = games[0];
 
-    if (game.player1_id !== userId && game.player2_id !== userId) {
+    if (game[1] !== userId && game[2] !== userId) {
       ctx.response.status = 403;
       ctx.response.body = { message: "Vous n'êtes pas un joueur de cette partie" };
       return;
     }
 
-    var winnerId=null;
-    var loserId=null;
-    if(game.player1_id==userId){
-      winnerId=game.player2_id
-      loserId=game.player1_id;
-    }
-    else{
-      winnerId=game.player1_id
-      loserId=game.player2_id;
+    let winnerId = null;
+    let loserId = null;
+    if (game[1] === userId) {
+      winnerId = game[2];
+      loserId = game[1];
+    } else {
+      winnerId = game[1];
+      loserId = game[2];
     }
 
     await db.query(
-      "UPDATE games SET status = 'finished', updated_at = CURRENT_TIMESTAMP,winner_id=? WHERE id = ?",
-      [winnerId,gameId]
+      "UPDATE games SET status = 'finished', updated_at = CURRENT_TIMESTAMP, winner_id = ? WHERE id = ?",
+      [winnerId, gameId]
     );
 
     await db.query(
-      "UPDATE stats SET games_played = games_played+1, games_won=games_won+1 WHERE user_id = ?",
+      "UPDATE stats SET games_played = games_played + 1, games_won = games_won + 1 WHERE user_id = ?",
       [winnerId]
     );
 
     await db.query(
-      "UPDATE stats SET games_played = games_played+1 WHERE user_id = ?",
+      "UPDATE stats SET games_played = games_played + 1 WHERE user_id = ?",
       [loserId]
     );
 
     ctx.response.status = 201;
-    ctx.response.body = { message: "Partie finit" };
+    ctx.response.body = { message: "Partie terminée" };
 
-
-  }catch (error) {
+  } catch (error) {
     ctx.response.status = 500;
     ctx.response.body = { message: "Erreur serveur", error: error.message };
   }

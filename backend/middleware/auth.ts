@@ -13,23 +13,6 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     console.log("Auth middleware - cookie token extrait:", token);
     
     if (!token) {
-      // Vérifier si le token est dans l'en-tête Authorization à la place
-      const authHeader = ctx.request.headers.get("Authorization");
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const bearerToken = authHeader.substring(7);
-        try {
-          const payload = await verifyJWT(bearerToken);
-          if (payload && payload.id) {
-            ctx.state.user = payload;
-            console.log("Auth middleware - utilisateur authentifié via Bearer:", payload.id);
-            await next();
-            return;
-          }
-        } catch (e) {
-          console.error("Erreur de vérification du token Bearer:", e);
-        }
-      }
-      
       console.log("Auth middleware - Aucun token trouvé");
       ctx.response.status = 401;
       ctx.response.body = { message: "Authentification requise" };
@@ -37,6 +20,7 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     }
 
     const payload = await verifyJWT(token);
+    console.log("Auth middleware - payload JWT:", payload);
     
     if (!payload || !payload.id) {
       console.log("Auth middleware - Token invalide");
