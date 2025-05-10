@@ -21,35 +21,35 @@ function checkRequiredFunctions() {
   ];
   
   // Vérifier chaque fonction
+  const missingFunctions = [];
   for (const func of requiredFunctions) {
     if (typeof window[func] !== 'function') {
-      console.error(`Fonction requise '${func}' non disponible`);
-      return false;
+      missingFunctions.push(func);
     }
   }
   
-  return true;
-}
-function checkDependencies() {
-  const required = ['createGame', 'getActiveGames', 'getGameDetails'];
-  const missing = required.filter(fn => !window[fn]);
-  
-  if (missing.length > 0) {
-    console.error('Fonctions manquantes:', missing);
+  if (missingFunctions.length > 0) {
+    console.error('Fonctions manquantes:', missingFunctions);
     return false;
   }
+  
   return true;
 }
-// Initialiser le jeu
-function initializeGame() {
-  
-  console.log('Initialisation du jeu - currentGameId:', currentGameId);
 
+// Initialiser le jeu
+async function initializeGame() {
+  console.log('Initialisation du jeu - currentGameId:', currentGameId);
   console.log('Initialisation du jeu...');
-  if (!checkDependencies()) {
-    console.error('Arrêt: dépendances manquantes');
+  
+  // Attendre que toutes les fonctions soient disponibles
+  if (!checkRequiredFunctions()) {
+    console.log('En attente des dépendances...');
+    // Réessayer après un court délai
+    setTimeout(initializeGame, 100);
     return;
   }
+
+  console.log('Toutes les dépendances sont chargées, démarrage...');
 
   // Réinitialisation des variables
   currentGameId = null;
@@ -61,29 +61,26 @@ function initializeGame() {
   createGameBoards();
   setupEventListeners();
 
-  // Vérification des parties après un léger délai
-  setTimeout(async () => {
-    try {
-      await checkForExistingGame();
+  try {
+    await checkForExistingGame();
+    
+    // Si aucune partie n'existe, en créer une nouvelle
+    if (!currentGameId) {
+      console.log("Création d'une nouvelle partie...");
+      const response = await window.createGame();
       
-      // Si aucune partie n'existe, en créer une nouvelle
-      if (!currentGameId) {
-        console.log("Création d'une nouvelle partie...");
-        const response = await window.createGame();
-        
-        if (response?.gameId) {
-          currentGameId = response.gameId;
-          const gameIdElement = document.getElementById('game-id');
-          if (gameIdElement) {
-            gameIdElement.textContent = currentGameId;
-          }
-          console.log("Nouvelle partie créée avec ID:", currentGameId);
+      if (response?.gameId) {
+        currentGameId = response.gameId;
+        const gameIdElement = document.getElementById('game-id');
+        if (gameIdElement) {
+          gameIdElement.textContent = currentGameId;
         }
+        console.log("Nouvelle partie créée avec ID:", currentGameId);
       }
-    } catch (error) {
-      console.error("Erreur d'initialisation:", error);
     }
-  }, 300); // Délai réduit à 300ms
+  } catch (error) {
+    console.error("Erreur d'initialisation:", error);
+  }
 }
 
 // Vérifier si une partie existe déjà
@@ -234,11 +231,14 @@ function setupEventListeners() {
   const shipItems = document.querySelectorAll('.ship-item');
   shipItems.forEach(ship => {
     ship.addEventListener('click', () => {
-      selectedShipType = ship.dataset.ship;
-      // Désélectionner les autres navires
-      shipItems.forEach(s => s.classList.remove('selected'));
-      // Sélectionner ce navire
-      ship.classList.add('selected');
+      // Ne permettre la sélection que si le navire n'est pas déjà placé
+      if (!ship.classList.contains('placed')) {
+        selectedShipType = ship.dataset.ship;
+        // Désélectionner les autres navires
+        shipItems.forEach(s => s.classList.remove('selected'));
+        // Sélectionner ce navire
+        ship.classList.add('selected');
+      }
     });
   });
   

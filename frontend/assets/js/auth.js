@@ -1,10 +1,9 @@
 // frontend/assets/js/auth.js
-const API_URL = 'http://localhost:3000/api';
 
 // Vérifier si l'utilisateur est connecté
 async function checkAuthentication() {
   try {
-    const response = await fetch(`${API_URL}/auth/check`, {
+    const response = await fetch(`${window.API_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -70,7 +69,7 @@ async function checkAuthentication() {
 // Fonction de connexion
 async function login(username, password) {
   try {
-    const response = await fetch(`${API_URL}/auth/login`, {
+    const response = await fetch(`${window.API_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,7 +97,7 @@ async function login(username, password) {
 async function register(username, email, password) {
   try {
     console.log("Envoi des données:", { username, email, password });
-    const response = await fetch(`${API_URL}/auth/register`, {
+    const response = await fetch(`${window.API_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -123,7 +122,7 @@ async function register(username, email, password) {
 // Fonction de déconnexion
 async function logout() {
   try {
-    const response = await fetch(`${API_URL}/auth/logout`, {
+    const response = await fetch(`${window.API_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });

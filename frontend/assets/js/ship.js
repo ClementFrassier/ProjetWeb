@@ -1,8 +1,9 @@
+// frontend/assets/js/ship.js
 
 // Fonction pour placer un navire
 async function placeShip(gameId, type, x, y, orientation) {
   try {
-    const response = await fetch(`${API_URL}/games/placeShip`, {
+    const response = await fetch(`${window.API_URL}/games/placeShip`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -27,7 +28,7 @@ async function placeShip(gameId, type, x, y, orientation) {
 // Fonction pour valider le placement d'un navire
 async function validateShipPlacement(gameId, x, y, orientation, size) {
   try {
-    const response = await fetch(`${API_URL}/games/validateShipPlacement`, {
+    const response = await fetch(`${window.API_URL}/games/validateShipPlacement`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -56,7 +57,7 @@ async function getPlayerShips(gameId) {
     return { error: "Game ID manquant", ships: [] };
   }
   try {
-    const response = await fetch(`${API_URL}/games/playerShips?gameId=${gameId}`, {
+    const response = await fetch(`${window.API_URL}/games/playerShips?gameId=${gameId}`, {
       method: 'GET',
       credentials: 'include'
     });
@@ -71,7 +72,7 @@ async function getPlayerShips(gameId) {
 // Fonction pour vérifier l'état des navires
 async function checkShipStatus(gameId) {
   try {
-    const response = await fetch(`${API_URL}/games/shipStatus`, {
+    const response = await fetch(`${window.API_URL}/games/shipStatus`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -111,7 +112,6 @@ function drawShip(boardId, x, y, size, orientation) {
     }
   }
 }
-
 
 window.placeShip = placeShip;
 window.validateShipPlacement = validateShipPlacement;

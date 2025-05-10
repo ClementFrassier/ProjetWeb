@@ -1,5 +1,4 @@
 // frontend/assets/js/api.js
-const API_URL = 'http://localhost:3000/api';
 
 function mapStatusIdToString(statusId) {
   const statusMap = {
@@ -540,74 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeGame();
   }, 200);
 });
-// Fonction pour obtenir les détails d'une partie
-async function getGameDetails(gameId) {
-  // Vérification stricte
-  if (!gameId || gameId === 'undefined' || gameId === 'null') {
-    console.error("Appel à getGameDetails avec ID invalide:", gameId);
-    return { error: "ID de partie requis" };
-  }
 
-  console.log(`Tentative de récupération des détails de la partie ${gameId}`);
-  
-  try {
-    const url = `${API_URL}/games/detail?id=${gameId}`;
-    console.log(`URL de la requête: ${url}`);
-    
-    // Récupérer et afficher les cookies
-    console.log(`Cookies disponibles: ${document.cookie}`);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
 
-    console.log(`Statut de la réponse: ${response.status} ${response.statusText}`);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Réponse d'erreur brute: ${errorText}`);
-      
-      const errorData = JSON.parse(errorText);
-      return { 
-        error: errorData?.message || `Erreur ${response.status}`,
-        status: response.status
-      };
-    }
-
-    const data = await response.json();
-    console.log(`Données reçues: ${JSON.stringify(data)}`);
-    
-    // Formatage cohérent des données
-    if (data.game) {
-      return {
-        game: {
-          id: data.game.id,
-          player1_id: data.game.player1_id,
-          player2_id: data.game.player2_id,
-          status: mapStatusIdToString(data.game.status),
-          winner_id: data.game.winner_id,
-          created_at: data.game.created_at,
-          updated_at: data.game.updated_at
-        }
-      };
-    }
-    
-    return { error: "Format de réponse inattendu", data };
-    
-  } catch (error) {
-    console.error('Erreur getGameDetails:', error);
-    return { 
-      error: "Erreur de connexion",
-      details: error.message 
-    };
-  }
-}
-
-// Fonction pour récupérer les parties actives
 async function getGameDetails(gameId) {
   // Vérification stricte
   if (!gameId || gameId === 'undefined' || gameId === 'null') {
