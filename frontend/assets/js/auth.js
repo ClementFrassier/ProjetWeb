@@ -37,7 +37,7 @@ async function checkAuthentication() {
       document.getElementById('profile-link')?.style.setProperty('display', 'block');
       document.getElementById('game-link')?.style.setProperty('display', 'block');
       document.getElementById('logout-link')?.style.setProperty('display', 'block');
-      
+      document.getElementById('lobby-link')?.style.setProperty('display', 'block');
       // Stocker les infos de l'utilisateur dans le localStorage
       localStorage.setItem('user', JSON.stringify(data.user));
       

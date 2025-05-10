@@ -14,34 +14,44 @@ function convertRowToGame(row: any[]) {
   };
 }
 
+// backend/controllers/game.ts - Fonction startGame corrigée
 export const startGame = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
+    console.log("Création d'une partie pour l'utilisateur:", userId);
 
-    // 1. Démarrer une transaction
-    await db.query("BEGIN");
-
+    // Version simplifiée sans transaction explicite
     try {
-      // 2. Insérer la nouvelle partie
+      // Insérer la nouvelle partie
       await db.query(
         "INSERT INTO games (player1_id, status) VALUES (?, 'waiting')",
         [userId]
       );
 
-      // 3. Récupérer le dernier ID inséré
-      const [result] = await db.query(
+      // Récupérer le dernier ID inséré
+      const result = await db.query(
         "SELECT last_insert_rowid() as id"
       );
 
-      const gameId = result.id;
+      console.log("Résultat de last_insert_rowid:", result);
 
-      if (!gameId) {
-        await db.query("ROLLBACK");
-        throw new Error("Échec de la création de partie");
+      // Vérifier le format du résultat
+      let gameId;
+      if (result && result.length > 0) {
+        // Si c'est un tableau de tableaux
+        if (Array.isArray(result[0])) {
+          gameId = result[0][0];
+        } else {
+          // Si c'est un tableau d'objets
+          gameId = result[0].id || result[0][0];
+        }
       }
 
-      // 4. Valider la transaction
-      await db.query("COMMIT");
+      console.log("ID de partie créé:", gameId);
+
+      if (!gameId) {
+        throw new Error("Impossible de récupérer l'ID de la partie créée");
+      }
 
       ctx.response.status = 201;
       ctx.response.body = { 
@@ -51,12 +61,7 @@ export const startGame = async (ctx: Context) => {
       };
 
     } catch (error) {
-      // Rollback seulement si la transaction est active
-      try {
-        await db.query("ROLLBACK");
-      } catch (rollbackError) {
-        console.error("Erreur lors du rollback:", rollbackError);
-      }
+      console.error("Erreur lors de la création de partie:", error);
       throw error;
     }
 
@@ -71,56 +76,104 @@ export const startGame = async (ctx: Context) => {
   }
 };
 
-export const joinGame = async (ctx: Context) => {
+// Alternative plus robuste si la première version ne fonctionne pas
+export const startGameAlternative = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
-    const body = await ctx.request.body().value;
-    const { gameId } = body;
+    console.log("Création d'une partie pour l'utilisateur:", userId);
 
-    if (!gameId) {
-      ctx.response.status = 400;
-      ctx.response.body = { message: "ID de partie requis" };
-      return;
-    }
-    
-    const games = await db.query(
-      "SELECT * FROM games WHERE id = ?",
-      [gameId]
+    // Générer un ID unique basé sur le timestamp
+    const gameId = Date.now();
+
+    // Insérer la partie avec un ID spécifique
+    await db.query(
+      "INSERT INTO games (id, player1_id, status) VALUES (?, ?, 'waiting')",
+      [gameId, userId]
     );
 
-    if (games.length === 0) {
+    ctx.response.status = 201;
+    ctx.response.body = { 
+      success: true,
+      gameId: gameId,
+      message: "Partie créée avec succès"
+    };
+
+  } catch (error) {
+    console.error("Erreur création partie:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { 
+      success: false,
+      error: error.message,
+      details: "Échec de la création de partie"
+    };
+  }
+};
+
+// backend/controllers/game.ts - Fonction joinGame corrigée
+export const joinGame = async (ctx: Context) => {
+  try {
+    const body = await ctx.request.body.json();
+    const gameId = parseInt(body.gameId);
+    const userId = ctx.state.user.id;
+    
+    console.log("Tentative de rejoindre la partie:", { gameId, userId });
+
+    // Vérifier que gameId est valide
+    if (!gameId || isNaN(gameId)) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "ID de partie invalide" };
+      return;
+    }
+
+    // Vérifier si la partie existe
+    const game = await db.query("SELECT * FROM games WHERE id = ?", [gameId]);
+    
+    if (!game || game.length === 0) {
+      console.log("Partie non trouvée:", gameId);
       ctx.response.status = 404;
-      ctx.response.body = { message: "Partie non trouvée" };
+      ctx.response.body = { error: "Partie introuvable" };
       return;
     }
 
-    const game = games[0];
-
-    if (game[3] !== "waiting") {
+    const gameData = game[0];
+    
+    // Vérifier l'état de la partie
+    if (gameData[3] !== 'waiting') {
+      console.log("Partie non disponible, statut:", gameData[3]);
       ctx.response.status = 400;
-      ctx.response.body = { message: "Cette partie n'est pas disponible" };
+      ctx.response.body = { error: "La partie n'est pas disponible" };
       return;
     }
 
-    if (game[1] === userId) {
+    // Vérifier si le joueur n'est pas déjà dans la partie
+    if (gameData[1] === userId) {
+      console.log("Le joueur est déjà dans la partie");
       ctx.response.status = 400;
-      ctx.response.body = { message: "Vous ne pouvez pas rejoindre votre propre partie" };
+      ctx.response.body = { error: "Vous êtes déjà dans cette partie" };
       return;
     }
 
+    // Rejoindre la partie
     await db.query(
       "UPDATE games SET player2_id = ?, status = 'setup', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       [userId, gameId]
     );
 
+    console.log("Partie rejointe avec succès:", { gameId, userId });
+
     ctx.response.status = 200;
     ctx.response.body = { 
-      message: "Partie rejointe avec succès", 
-      gameId: gameId 
+      success: true,
+      gameId: gameId,
+      message: "Partie rejointe avec succès"
     };
   } catch (error) {
+    console.error("Erreur lors de la tentative de rejoindre:", error);
     ctx.response.status = 500;
-    ctx.response.body = { message: "Erreur serveur", error: error.message };
+    ctx.response.body = { 
+      error: "Erreur lors de la tentative de rejoindre la partie",
+      details: error.message
+    };
   }
 };
 

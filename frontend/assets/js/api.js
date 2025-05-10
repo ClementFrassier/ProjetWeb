@@ -15,6 +15,7 @@ function mapStatusIdToString(statusId) {
 }
 
 // Fonction pour créer une nouvelle partie
+// frontend/assets/js/api.js - Fonction createGame corrigée
 async function createGame() {
   try {
     console.log("Envoi de la requête pour créer une partie");
@@ -26,21 +27,25 @@ async function createGame() {
       }
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: "Erreur serveur" }));
-      console.error("Erreur HTTP lors de la création:", response.status, errorData);
-      return { error: errorData.message || `Erreur (${response.status})` };
-    }
-    
     const data = await response.json();
-    console.log("Réponse création de partie:", data);
+    console.log("Réponse brute du serveur:", data);
     
-    // Si la réponse est un tableau, extraire l'ID
-    if (Array.isArray(data)) {
-      return { gameId: data[0] };
+    if (!response.ok) {
+      console.error("Erreur HTTP lors de la création:", response.status, data);
+      return { error: data.error || data.message || `Erreur (${response.status})` };
     }
     
-    return data; // Sinon retourner la réponse telle quelle
+    // Vérifier la structure de la réponse
+    if (data.success && data.gameId) {
+      console.log("Partie créée avec succès, ID:", data.gameId);
+      return { gameId: data.gameId };
+    } else if (data.gameId) {
+      // Si success n'est pas présent mais gameId l'est
+      return { gameId: data.gameId };
+    } else {
+      console.error("Format de réponse inattendu:", data);
+      return { error: "Format de réponse invalide" };
+    }
   } catch (error) {
     console.error('Erreur réseau:', error);
     return { error: "Erreur de connexion au serveur" };

@@ -4,7 +4,7 @@ import { db } from "../config/db.ts";
 export const placeShip = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        const body = await ctx.request.body().value;
+        const body = await ctx.request.body.json(); // CORRIGÉ ICI
         const { gameId, x_position, y_position, orientation, type } = body;
 
         if (!gameId) {
@@ -89,7 +89,7 @@ export const getPlayerShips = async (ctx: Context) => {
 export const validateShipPlacement = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        const body = await ctx.request.body().value;
+        const body = await ctx.request.body.json(); // CORRIGÉ ICI
         const { gameId, x_position, y_position, orientation, size } = body;
 
         if (!gameId) {
@@ -191,7 +191,7 @@ export const validateShipPlacement = async (ctx: Context) => {
 export const checkShipStatus = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        const body = await ctx.request.body().value;
+        const body = await ctx.request.body.json(); // CORRIGÉ ICI
         const { gameId } = body;
 
         if (!gameId) {

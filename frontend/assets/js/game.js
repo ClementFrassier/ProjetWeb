@@ -37,22 +37,31 @@ function checkRequiredFunctions() {
 }
 
 // Initialiser le jeu
+// Modification de initializeGame pour gérer les cas où l'utilisateur doit rejoindre la partie
 async function initializeGame() {
-  console.log('Initialisation du jeu - currentGameId:', currentGameId);
   console.log('Initialisation du jeu...');
+  
+  // Récupérer l'ID depuis l'URL si disponible
+  const urlGameId = getGameIdFromUrl();
+  if (urlGameId) {
+    currentGameId = urlGameId;
+    console.log('ID de partie récupéré depuis l\'URL:', currentGameId);
+  }
   
   // Attendre que toutes les fonctions soient disponibles
   if (!checkRequiredFunctions()) {
     console.log('En attente des dépendances...');
-    // Réessayer après un court délai
     setTimeout(initializeGame, 100);
     return;
   }
 
   console.log('Toutes les dépendances sont chargées, démarrage...');
 
-  // Réinitialisation des variables
-  currentGameId = null;
+  // Réinitialisation des variables si pas d'ID dans l'URL
+  if (!currentGameId) {
+    currentGameId = null;
+  }
+  
   isMyTurn = false;
   placedShips = [];
   gameStatus = 'setup';
@@ -62,25 +71,67 @@ async function initializeGame() {
   setupEventListeners();
 
   try {
-    await checkForExistingGame();
-    
-    // Si aucune partie n'existe, en créer une nouvelle
-    if (!currentGameId) {
-      console.log("Création d'une nouvelle partie...");
-      const response = await window.createGame();
-      
-      if (response?.gameId) {
-        currentGameId = response.gameId;
-        const gameIdElement = document.getElementById('game-id');
-        if (gameIdElement) {
-          gameIdElement.textContent = currentGameId;
-        }
-        console.log("Nouvelle partie créée avec ID:", currentGameId);
+    // Si on a déjà un ID, charger directement cette partie
+    if (currentGameId) {
+      const gameIdElement = document.getElementById('game-id');
+      if (gameIdElement) {
+        gameIdElement.textContent = currentGameId;
       }
+      
+      // Tentative de récupération des détails
+      const detailsResponse = await window.getGameDetails(currentGameId);
+      
+      // Si accès refusé, proposer de rejoindre la partie
+      if (detailsResponse?.error === "Accès refusé") {
+        console.log("Accès refusé - tentative de rejoindre la partie");
+        
+        // Afficher un message et proposer de rejoindre
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+          statusMessage.textContent = "Vous devez d'abord rejoindre cette partie...";
+        }
+        
+        // Tenter de rejoindre automatiquement
+        const joinResponse = await window.joinGame(currentGameId);
+        
+        if (joinResponse?.error) {
+          // Si impossible de rejoindre, afficher l'erreur
+          alert(`Impossible de rejoindre la partie: ${joinResponse.error}`);
+          // Rediriger vers le lobby
+          window.location.href = 'lobby.html';
+          return;
+        } else {
+          // Si rejoint avec succès, recharger les détails
+          console.log("Partie rejointe avec succès, rechargement...");
+          if (statusMessage) {
+            statusMessage.textContent = "Partie rejointe ! Chargement...";
+          }
+          
+          // Attendre un peu pour que le serveur mette à jour la base de données
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Réessayer de charger les détails
+          await checkGameStatus();
+          await loadExistingShips();
+        }
+      } else if (detailsResponse?.game) {
+        // Si on a accès, continuer normalement
+        gameStatus = detailsResponse.game.status;
+        await loadExistingShips();
+      }
+    } else {
+      // Sinon, vérifier s'il y a des parties existantes
+      await checkForExistingGame();
     }
   } catch (error) {
     console.error("Erreur d'initialisation:", error);
   }
+}
+
+// Fonction pour obtenir l'ID de partie depuis l'URL
+function getGameIdFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('gameId');
 }
 
 // Vérifier si une partie existe déjà

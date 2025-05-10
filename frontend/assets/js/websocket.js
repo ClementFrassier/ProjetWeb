@@ -6,6 +6,45 @@ let gameId = null;
 let userId = null;
 
 // Fonction pour initialiser la connexion WebSocket
+function startGameStatusPolling(gameId) {
+  // Vérifier toutes les 3 secondes si la partie est en attente
+  const pollInterval = setInterval(async () => {
+    if (gameStatus === 'waiting') {
+      try {
+        const response = await window.getGameDetails(gameId);
+        
+        if (response?.game) {
+          const game = response.game;
+          
+          // Si un second joueur a rejoint
+          if (game.player2_id && game.status === 'setup') {
+            clearInterval(pollInterval);
+            gameStatus = 'setup';
+            
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage) {
+              statusMessage.textContent = "Un adversaire a rejoint ! Placez vos navires.";
+            }
+            
+            // Activer la phase de placement si pas encore fait
+            const gameSetup = document.getElementById('game-setup');
+            if (gameSetup) {
+              gameSetup.classList.add('active-phase');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du polling:', error);
+      }
+    } else {
+      // Arrêter le polling si la partie n'est plus en attente
+      clearInterval(pollInterval);
+    }
+  }, 3000);
+}
+
+
+// Fonction pour initialiser la connexion WebSocket
 function initWebSocket(currentGameId) {
   // Stocker l'ID de la partie
   gameId = currentGameId;
@@ -67,6 +106,12 @@ function initWebSocket(currentGameId) {
   socket.onerror = (error) => {
     console.error('Erreur WebSocket:', error);
   };
+  
+  // AJOUTER LE POLLING ICI !
+  // Démarrer le polling si la partie est en attente
+  if (gameStatus === 'waiting') {
+    startGameStatusPolling(currentGameId);
+  }
 }
 
 // Fonction pour gérer les messages reçus via WebSocket

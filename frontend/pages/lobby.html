@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bataille Navale - Lobby</title>
+  <link rel="stylesheet" href="../assets/css/game.css">
+  <style>
+    #game-lobby {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .lobby-section {
+      margin-bottom: 30px;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .game-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bataille Navale - Lobby</h1>
+    <nav id="main-nav">
+      <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="profile.html" id="profile-link">Profil</a></li>
+        <li><a href="#" id="logout-link">Déconnexion</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="game-lobby">
+    <div class="lobby-section">
+      <h2>Créer une nouvelle partie</h2>
+      <p>Créez une nouvelle partie et attendez qu'un adversaire vous rejoigne.</p>
+      <button id="create-game-btn">Créer une partie</button>
+    </div>
+
+    <div class="lobby-section">
+      <h2>Rejoindre une partie existante</h2>
+      <p>Parties disponibles :</p>
+      <div id="available-games" class="game-list">
+        <!-- Les parties disponibles seront affichées ici -->
+      </div>
+      <button id="refresh-games-btn">Rafraîchir la liste</button>
+    </div>
+
+    <div class="lobby-section">
+      <h2>Mes parties en cours</h2>
+      <div id="my-games" class="game-list">
+        <!-- Les parties actives du joueur seront affichées ici -->
+      </div>
+    </div>
+
+    <div id="status-message"></div>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Bataille Navale - Projet Web</p>
+  </footer>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/lobby.js"></script>
+</body>
+</html>
