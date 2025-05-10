@@ -6,7 +6,6 @@ let selectedShipType = null;
 let placedShips = [];
 let gameStatus = 'setup'; // 'setup', 'playing', 'finished'
 
-
 /**
  * Vérifie si les fonctions requises sont disponibles
  * @returns {boolean} Vrai si toutes les fonctions sont disponibles
@@ -31,71 +30,170 @@ function checkRequiredFunctions() {
   
   return true;
 }
-
+function checkDependencies() {
+  const required = ['createGame', 'getActiveGames', 'getGameDetails'];
+  const missing = required.filter(fn => !window[fn]);
+  
+  if (missing.length > 0) {
+    console.error('Fonctions manquantes:', missing);
+    return false;
+  }
+  return true;
+}
 // Initialiser le jeu
 function initializeGame() {
-  // Vérifier si les fonctions nécessaires sont disponibles
-  if (!checkRequiredFunctions()) {
-    alert("Certaines fonctions requises ne sont pas disponibles. Veuillez rafraîchir la page.");
+  
+  console.log('Initialisation du jeu - currentGameId:', currentGameId);
+
+  console.log('Initialisation du jeu...');
+  if (!checkDependencies()) {
+    console.error('Arrêt: dépendances manquantes');
+    return;
+  }
+
+  // Réinitialisation des variables
+  currentGameId = null;
+  isMyTurn = false;
+  placedShips = [];
+  gameStatus = 'setup';
+
+  // Création des éléments UI
+  createGameBoards();
+  setupEventListeners();
+
+  // Vérification des parties après un léger délai
+  setTimeout(async () => {
+    try {
+      await checkForExistingGame();
+      
+      // Si aucune partie n'existe, en créer une nouvelle
+      if (!currentGameId) {
+        console.log("Création d'une nouvelle partie...");
+        const response = await window.createGame();
+        
+        if (response?.gameId) {
+          currentGameId = response.gameId;
+          const gameIdElement = document.getElementById('game-id');
+          if (gameIdElement) {
+            gameIdElement.textContent = currentGameId;
+          }
+          console.log("Nouvelle partie créée avec ID:", currentGameId);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur d'initialisation:", error);
+    }
+  }, 300); // Délai réduit à 300ms
+}
+
+// Vérifier si une partie existe déjà
+async function checkForExistingGame() {
+  console.log('Vérification des parties existantes...');
+
+  try {
+    const response = await window.getActiveGames();
+    
+    if (response?.error) {
+      console.error("Erreur getActiveGames:", response.error);
+      return;
+    }
+
+    console.log("Réponse brute de getActiveGames:", JSON.stringify(response));
+
+    // Vérification approfondie de la structure
+    if (!response?.games || !Array.isArray(response.games)) {
+      console.error("Format de réponse invalide - games n'est pas un tableau");
+      return;
+    }
+
+    if (response.games.length === 0) {
+      console.log("Aucune partie existante");
+      currentGameId = null;
+      return;
+    }
+
+    // Debug: Inspecter la première partie
+    const firstGame = response.games[0];
+    console.log("Structure première partie:", JSON.stringify(firstGame));
+
+    // Extraction de l'ID selon le format
+    let gameId;
+    if (Array.isArray(firstGame)) {
+      // Format tableau [id, player1_id, player2_id, ...]
+      gameId = firstGame[0];
+      console.log("ID extrait (format tableau):", gameId);
+    } else if (firstGame && typeof firstGame === 'object') {
+      // Format objet {id: ..., player1_id: ...}
+      gameId = firstGame.id;
+      console.log("ID extrait (format objet):", gameId);
+    } else {
+      console.error("Format de partie inconnu:", typeof firstGame, firstGame);
+      return;
+    }
+
+    // Validation stricte
+    if (!gameId || gameId === 'undefined' || gameId === 'null') {
+      console.error("ID invalide:", gameId);
+      return;
+    }
+
+    currentGameId = gameId.toString();
+    console.log("Partie trouvée, ID valide:", currentGameId);
+
+    // Mise à jour UI
+    const gameIdElement = document.getElementById('game-id');
+    if (gameIdElement) gameIdElement.textContent = currentGameId;
+
+    // Chargement des détails
+    await checkGameStatus();
+    await loadExistingShips();
+
+  } catch (error) {
+    console.error('Erreur checkForExistingGame:', error);
+    currentGameId = null;
+  }
+}
+
+async function loadExistingShips() {
+  if (!currentGameId) {
+    console.log("Impossible de charger les navires: ID de partie non défini");
     return;
   }
   
-  createGameBoards();
-  setupEventListeners();
-  checkForExistingGame();
-}
-// Vérifier si une partie existe déjà
-async function checkForExistingGame() {
   try {
-    if (typeof window.getActiveGames !== 'function') {
-      console.error('getActiveGames is not available');
-      return;
-    }
+    const shipsResponse = await window.getPlayerShips(currentGameId);
     
-    // Récupérer les parties actives
-    const response = await window.getActiveGames();
-    if (response.error) {
-      console.error(`Erreur: ${response.error}`);
+    if (shipsResponse?.error) {
+      console.error(`Erreur navires: ${shipsResponse.error}`);
       return;
     }
 
-    // Si des parties actives existent pour ce joueur
-    if (response.games && response.games.length > 0) {
-      // Utiliser la première partie active trouvée
-      const game = response.games[0];
-      currentGameId = game.id;
-      document.getElementById('game-id').textContent = currentGameId;
-      
-      // Vérifier l'état de la partie
-      checkGameStatus();
-      
-      // Si la partie est en cours, initialiser WebSocket
-      if (game.status === 'in_progress' || game.status === 'setup') {
-        initWebSocket(currentGameId);
-      }
-      
-      // Charger les navires du joueur si disponible
-      try {
-        const shipsResponse = await window.getPlayerShips(currentGameId);
-        if (!shipsResponse.error && shipsResponse.ships) {
-          // Afficher les navires sur la grille
-          shipsResponse.ships.forEach(ship => {
-            placeShipVisually(ship.x_position, ship.y_position, getShipSize(ship.type), ship.orientation);
-            
-            // Marquer ce navire comme placé dans l'interface
-            const shipElement = document.querySelector(`.ship-item[data-ship="${ship.type}"]`);
-            if (shipElement) {
-              shipElement.classList.add('placed');
-              shipElement.draggable = false;
-            }
-          });
+    // Si les navires sont retournés sous forme de tableaux
+    if (shipsResponse?.ships && Array.isArray(shipsResponse.ships)) {
+      shipsResponse.ships.forEach(shipArray => {
+        // Convertir le tableau en objet
+        const ship = {
+          id: shipArray[0],
+          game_id: shipArray[1],
+          user_id: shipArray[2],
+          type: shipArray[3],
+          x_position: shipArray[4],
+          y_position: shipArray[5],
+          orientation: shipArray[6],
+          is_sunk: shipArray[7]
+        };
+        
+        placeShipVisually(ship.x_position, ship.y_position, getShipSize(ship.type), ship.orientation);
+        
+        const shipElement = document.querySelector(`.ship-item[data-ship="${ship.type}"]`);
+        if (shipElement) {
+          shipElement.classList.add('placed');
+          shipElement.draggable = false;
         }
-      } catch (error) {
-        console.error('Erreur lors du chargement des navires:', error);
-      }
+      });
     }
   } catch (error) {
-    console.error('Erreur lors de la vérification des parties existantes:', error);
+    console.error('Erreur loadExistingShips:', error);
   }
 }
 
@@ -253,7 +351,11 @@ function placeShipVisually(x, y, size, orientation) {
     
     const cellId = `player-board-${posX}-${posY}`;
     const cell = document.getElementById(cellId);
-    cell.classList.add('ship');
+    if (cell) {
+      cell.classList.add('ship');
+    } else {
+      console.warn(`Cellule ${cellId} introuvable`);
+    }
   }
 }
 
@@ -271,39 +373,62 @@ function getShipSize(type) {
 
 // Joueur prêt à commencer
 async function playerReady() {
+  console.log('Bouton prêt - currentGameId:', currentGameId);
+  
   if (placedShips.length !== 5) {
-    alert('Vous devez placer tous vos navires avant de commencer!');
+    alert("Vous devez placer vos 5 navires avant de continuer");
     return;
   }
-  
-  // Si aucune partie n'est créée, en créer une nouvelle
-  if (!currentGameId) {
-    try {
-      const response = await window.createGame();
-      if (response.error) {
-        alert(`Erreur: ${response.error}`);
-        return;
+
+  try {
+    // Si aucun ID de partie n'est défini, créer une nouvelle partie
+    if (!currentGameId) {
+      console.log("Tentative de création de partie...");
+      
+      // Vérifier que la fonction existe
+      if (typeof window.createGame !== 'function') {
+        throw new Error("La fonction createGame n'est pas disponible");
       }
+      
+      const response = await window.createGame();
+      console.log("Réponse création de partie:", response);
+      
+      if (response?.error) {
+        throw new Error(response.error || "Échec de la création de partie");
+      }
+      
+      // S'assurer que l'ID est bien présent dans la réponse
+      if (!response?.gameId) {
+        throw new Error("ID de partie manquant dans la réponse");
+      }
+      
       currentGameId = response.gameId;
-      document.getElementById('game-id').textContent = currentGameId;
-      document.getElementById('status-message').textContent = "En attente d'un adversaire...";
-    } catch (error) {
-      console.error('Erreur lors de la création de la partie:', error);
-      alert('Impossible de créer une partie. Veuillez réessayer.');
-      return;
+      console.log("Partie créée avec ID:", currentGameId);
+      
+      // Mettre à jour l'UI
+      const gameIdElement = document.getElementById('game-id');
+      if (gameIdElement) {
+        gameIdElement.textContent = currentGameId;
+      }
+      
+      // Attendre un court instant avant de continuer
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-  }
 
-  if (currentGameId) {
-    // Initialiser la connexion WebSocket
-    initWebSocket(currentGameId);
-  }
-  
-  // Envoyer les placements de navires au serveur
-  for (const ship of placedShips) {
-    try {
-      const placeResponse = await window.placeShip(
+    // Vérifier à nouveau que currentGameId est défini
+    if (!currentGameId) {
+      throw new Error("ID de partie toujours non défini après création");
+    }
 
+    // Vérifier que la fonction placeShip existe
+    if (typeof window.placeShip !== 'function') {
+      throw new Error("La fonction placeShip n'est pas disponible");
+    }
+
+    // Placement des navires
+    for (const ship of placedShips) {
+      console.log(`Placement du navire ${ship.type} en (${ship.x},${ship.y})`);
+      const result = await window.placeShip(
         currentGameId,
         ship.type,
         ship.x,
@@ -311,78 +436,93 @@ async function playerReady() {
         ship.orientation
       );
       
-      if (placeResponse.error) {
-        alert(`Erreur lors du placement des navires: ${placeResponse.error}`);
-        return;
+      if (result?.error) {
+        throw new Error(`Erreur placement ${ship.type}: ${result.error}`);
       }
-    } catch (error) {
-      console.error('Erreur lors du placement des navires:', error);
-      alert('Impossible de placer les navires. Veuillez réessayer.');
-      return;
     }
+
+    // Mise à jour UI
+    const readyBtn = document.getElementById('ready-btn');
+    if (readyBtn) {
+      readyBtn.disabled = true;
+    }
+    
+    const statusMessage = document.getElementById('status-message');
+    if (statusMessage) {
+      statusMessage.textContent = "Prêt - En attente d'adversaire...";
+    }
+    
+    // Vérifier à nouveau l'état de la partie
+    setTimeout(checkGameStatus, 1000);
+    
+  } catch (error) {
+    console.error("Erreur:", error);
+    alert(`Erreur: ${error.message}\nVeuillez réessayer.`);
   }
-  
-  // Désactiver la phase de préparation
-  document.getElementById('game-setup').classList.remove('active-phase');
-  document.getElementById('ready-btn').disabled = true;
-  
-  // Si le joueur est player1, attendre un adversaire
-  // Si le joueur est player2, la partie commence
-  checkGameStatus();
 }
-
-
 
 // Vérifier l'état de la partie
 async function checkGameStatus() {
-  if (!currentGameId) return;
-  
+  // Vérification stricte de l'ID
+  if (!currentGameId || currentGameId === 'undefined' || currentGameId === 'null') {
+    console.log("Aucun ID de partie valide - annuler la vérification du statut");
+    return;
+  }
+
   try {
+    console.log("Récupération des détails de la partie avec l'ID:", currentGameId);
+
     const response = await window.getGameDetails(currentGameId);
-    if (response.error) {
-      alert(`Erreur: ${response.error}`);
+
+    if (response?.error) {
+      console.error("Erreur dans checkGameStatus:", response.error);
+      return;
+    }
+    
+    // Vérifier que game existe
+    if (!response?.game) {
+      console.error("Réponse invalide - objet game manquant");
       return;
     }
     
     const game = response.game;
     
-    // Mettre à jour l'affichage de l'ID de la partie
-    document.getElementById('game-id').textContent = game.id;
+    // Mise à jour du statut
+    gameStatus = game.status;
     
-    // Mettre à jour le statut de la partie
-    switch (game.status) {
-      case 'waiting':
-        document.getElementById('status-message').textContent = "En attente d'un adversaire...";
-        gameStatus = 'setup';
-        break;
-      case 'setup':
-        document.getElementById('status-message').textContent = "Placement des navires...";
-        gameStatus = 'setup';
-        break;
-      case 'in_progress':
-        document.getElementById('status-message').textContent = "Partie en cours";
-        document.getElementById('opponent-board').classList.remove('hidden');
-        gameStatus = 'playing';
-        checkTurn(game);
-        break;
-      case 'finished':
-        document.getElementById('status-message').textContent = `Partie terminée! ${game.winner_id === getUserId() ? 'Vous avez gagné!' : 'Vous avez perdu!'}`;
-        gameStatus = 'finished';
-        break;
+    // Afficher un message selon le statut
+    const statusMessage = document.getElementById('status-message');
+    if (statusMessage) {
+      switch (gameStatus) {
+        case 'waiting':
+          statusMessage.textContent = "En attente d'un adversaire...";
+          break;
+        case 'setup':
+          statusMessage.textContent = "Placez vos navires";
+          break;
+        case 'in_progress':
+          statusMessage.textContent = "Partie en cours";
+          checkTurn(game);
+          // Rendre la grille adversaire visible
+          const opponentBoard = document.getElementById('opponent-board');
+          if (opponentBoard) {
+            opponentBoard.classList.remove('hidden');
+          }
+          break;
+        case 'finished':
+          const isWinner = game.winner_id === getUserId();
+          statusMessage.textContent = isWinner ? "Victoire !" : "Défaite";
+          break;
+      }
     }
-    
-    // Vérifier régulièrement l'état de la partie
-    setTimeout(checkGameStatus, 5000);
   } catch (error) {
-    console.error('Erreur lors de la vérification du statut de la partie:', error);
-    setTimeout(checkGameStatus, 5000); // Continuer à vérifier même en cas d'erreur
+    console.error("Erreur lors de la vérification du statut:", error);
   }
 }
 
 // Vérifier si c'est le tour du joueur
 function checkTurn(game) {
   // Logique simple: player1 commence, puis on alterne
-  // Dans une implémentation plus avancée, cela serait géré par le serveur
   const userId = getUserId();
   const isPlayer1 = game.player1_id === userId;
   
@@ -390,11 +530,8 @@ function checkTurn(game) {
   isMyTurn = isPlayer1;
   
   const turnIndicator = document.getElementById('turn-indicator');
-  if (isMyTurn) {
-    turnIndicator.textContent = "C'est votre tour";
-    turnIndicator.classList.remove('hidden');
-  } else {
-    turnIndicator.textContent = "Tour de l'adversaire";
+  if (turnIndicator) {
+    turnIndicator.textContent = isMyTurn ? "C'est votre tour" : "Tour de l'adversaire";
     turnIndicator.classList.remove('hidden');
   }
 }
@@ -412,16 +549,29 @@ async function handleShotClick(event) {
   }
   
   // Envoyer le tir via WebSocket au lieu de l'API REST
-  sendShot(x, y);
+  if (typeof sendShot === 'function') {
+    sendShot(x, y);
+  } else {
+    console.error("La fonction sendShot n'est pas disponible");
+    // Fallback si sendShot n'est pas disponible
+    if (typeof window.makeShot === 'function') {
+      await window.makeShot(currentGameId, x, y);
+    }
+  }
   
   // Désactiver temporairement le tour du joueur jusqu'à réception de la réponse
   isMyTurn = false;
-  document.getElementById('turn-indicator').textContent = "Tour de l'adversaire";
+  const turnIndicator = document.getElementById('turn-indicator');
+  if (turnIndicator) {
+    turnIndicator.textContent = "Tour de l'adversaire";
+  }
 }
 
 // Ajouter un message au chat
 function addChatMessage(message) {
   const chatMessages = document.getElementById('chat-messages');
+  if (!chatMessages) return;
+  
   const messageElement = document.createElement('div');
   messageElement.className = 'message';
   messageElement.textContent = message;
@@ -431,24 +581,34 @@ function addChatMessage(message) {
 
 // Obtenir l'ID de l'utilisateur connecté
 function getUserId() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  return user ? user.id : null;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return user.id || null;
+}
+
+// Fonction pour envoyer un message de chat (stub)
+function sendChatMessage(message) {
+  console.log("Envoi du message:", message);
+  // Cette fonction doit être définie dans le module WebSocket
+  if (typeof window.sendChatViaWebSocket === 'function') {
+    window.sendChatViaWebSocket(message);
+  } else {
+    console.warn("La fonction sendChatViaWebSocket n'est pas disponible");
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("DOM entièrement chargé");
+  
   const messageInput = document.getElementById('message-input');
   const sendButton = document.getElementById('send-message');
   
   if (sendButton) {
     sendButton.addEventListener('click', () => {
-      const message = messageInput.value.trim();
+      const message = messageInput?.value?.trim();
       if (message) {
-        // Envoyer le message via WebSocket
         sendChatMessage(message);
-        
-        // Afficher le message localement
         addChatMessage(`Vous: ${message}`);
-        messageInput.value = '';
+        if (messageInput) messageInput.value = '';
       }
     });
   }
@@ -458,10 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         const message = messageInput.value.trim();
         if (message) {
-          // Envoyer le message via WebSocket
           sendChatMessage(message);
-          
-          // Afficher le message localement
           addChatMessage(`Vous: ${message}`);
           messageInput.value = '';
         }

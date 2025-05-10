@@ -2,25 +2,51 @@ import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
 
 export const startGame = async (ctx: Context) => {
-  try{
-      const userId = ctx.state.user.id;
+  try {
+    const userId = ctx.state.user.id;
 
-      const result = await db.query(
-        "INSERT INTO games (player1_id, status) VALUES (?, ?)",
-        [userId, "waiting"]
-      );
+    // 1. Démarrer une transaction
+    await db.query("BEGIN");
 
-      ctx.response.status = 201;
-      ctx.response.body = { 
-        message: "Partie créée avec succès",
-        gameId: result.lastInsertId 
-      };
-  }catch (error) {
+    // 2. Insérer la nouvelle partie
+    await db.query(
+      "INSERT INTO games (player1_id, status) VALUES (?, 'waiting')",
+      [userId]
+    );
+
+    // 3. Récupérer le dernier ID inséré (spécifique à SQLite)
+    const [result] = await db.query(
+      "SELECT last_insert_rowid() as id"
+    );
+
+    const gameId = result.id;
+
+    if (!gameId) {
+      await db.query("ROLLBACK");
+      throw new Error("Échec de la création de partie");
+    }
+
+    // 4. Valider la transaction
+    await db.query("COMMIT");
+
+    ctx.response.status = 201;
+    ctx.response.body = { 
+      success: true,
+      gameId: gameId,
+      message: "Partie créée avec succès"
+    };
+
+  } catch (error) {
+    await db.query("ROLLBACK");
+    console.error("Erreur création partie:", error);
     ctx.response.status = 500;
-    ctx.response.body = { message: "Erreur serveur", error: error.message };
+    ctx.response.body = { 
+      success: false,
+      error: error.message,
+      details: "Échec de la création de partie"
+    };
   }
 };
-
 export const joinGame  = async (ctx: Context) => {
   try{
     const userId = ctx.state.user.id;
@@ -76,25 +102,31 @@ export const joinGame  = async (ctx: Context) => {
 };
 
 export const getGameDetails = async (ctx: Context) => {
-  try{
+  try {
     const userId = ctx.state.user.id;
-    
-    const gameId = ctx.params.id;
+    const gameId = ctx.request.url.searchParams.get("id");
 
-    if (!gameId) {
+    // Vérification stricte de l'ID
+    if (!gameId || gameId === 'undefined' || gameId === 'null') {
       ctx.response.status = 400;
-      ctx.response.body = { message: "ID de partie requis" };
+      ctx.response.body = { 
+        error: "ID de partie invalide",
+        details: `ID reçu: ${gameId}`
+      };
       return;
     }
     
     const games = await db.query(
-      "SELECT * FROM games WHERE id = ?",
+      "SELECT id, player1_id, player2_id, status, winner_id, created_at, updated_at FROM games WHERE id = ?",
       [gameId]
     );
 
     if (games.length === 0) {
       ctx.response.status = 404;
-      ctx.response.body = { message: "Partie non trouvée" };
+      ctx.response.body = { 
+        error: "Partie non trouvée",
+        gameId: gameId
+      };
       return;
     }
     
@@ -102,16 +134,29 @@ export const getGameDetails = async (ctx: Context) => {
     
     if (game.player1_id !== userId && game.player2_id !== userId) {
       ctx.response.status = 403;
-      ctx.response.body = { message: "Vous n'avez pas accès à cette partie" };
+      ctx.response.body = { error: "Accès refusé" };
       return;
     }
 
+    // Retourner un objet structuré
     ctx.response.status = 200;
-    ctx.response.body = { game };
-
-  }catch (error) {
+    ctx.response.body = {
+      game: {
+        id: game.id,
+        player1_id: game.player1_id,
+        player2_id: game.player2_id,
+        status: game.status, // Le statut est déjà une string
+        winner_id: game.winner_id,
+        created_at: game.created_at,
+        updated_at: game.updated_at
+      }
+    };
+  } catch (error) {
     ctx.response.status = 500;
-    ctx.response.body = { message: "Erreur serveur", error: error.message };
+    ctx.response.body = { 
+      error: "Erreur serveur",
+      details: error.message 
+    };
   }
 };
 

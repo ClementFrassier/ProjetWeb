@@ -4,7 +4,6 @@ import { db } from "../config/db.ts";
 export const placeShip  = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        // Correction: utiliser ctx.request.body().value au lieu de ctx.request.body.json()
         const body = await ctx.request.body().value;
         const { gameId, x_position, y_position, orientation, type } = body;
 
@@ -67,8 +66,7 @@ export const placeShip  = async (ctx: Context) => {
 export const getPlayerShips = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
-        const body = await ctx.request.body().value;
-        const { gameId } = body;
+        const gameId = ctx.request.url.searchParams.get("gameId"); // Récupérer depuis les query params
 
         if (!gameId) {
             ctx.response.status = 400;
@@ -76,22 +74,16 @@ export const getPlayerShips = async (ctx: Context) => {
             return;
         }
 
-        // Correction: virgule remplacée par AND dans la requête SQL
         const ships = await db.query(
             "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
             [gameId, userId]
         );
 
-        if (ships.length === 0) {
-            ctx.response.status = 404;
-            ctx.response.body = { message: "Bateau non trouvée" };
-            return;
-        }
+ 
 
         ctx.response.status = 200;
-        ctx.response.body = { Ships: ships };
-
-    }catch (error) {
+        ctx.response.body = { ships : ships || []}; // Note: j'ai changé "Ships" en "ships" pour la cohérence
+    } catch (error) {
         ctx.response.status = 500;
         ctx.response.body = { message: "Erreur serveur", error: error.message };
     }

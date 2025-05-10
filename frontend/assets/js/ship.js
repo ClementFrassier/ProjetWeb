@@ -51,14 +51,14 @@ async function validateShipPlacement(gameId, x, y, orientation, size) {
 
 // Fonction pour obtenir les navires du joueur
 async function getPlayerShips(gameId) {
+  if(!gameId){
+    console.log("Pas d'ID de partie, impossible d'avoir les bateaux ");
+    return { error: "Game ID manquant", ships: [] };
+  }
   try {
-    const response = await fetch(`${API_URL}/games/playerShips`, {
+    const response = await fetch(`${API_URL}/games/playerShips?gameId=${gameId}`, {
       method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ gameId })
+      credentials: 'include'
     });
     
     return await response.json();
