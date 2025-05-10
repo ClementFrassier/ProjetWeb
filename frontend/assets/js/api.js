@@ -18,7 +18,7 @@ function mapStatusIdToString(statusId) {
 async function createGame() {
   try {
     console.log("Envoi de la requête pour créer une partie");
-    const response = await fetch(`${API_URL}/games/start`, {
+    const response = await fetch(`${window.API_URL}/games/start`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -50,7 +50,7 @@ async function createGame() {
 // Fonction pour rejoindre une partie existante
 async function joinGame(gameId) {
   try {
-    const response = await fetch(`${API_URL}/games/join`, {
+    const response = await fetch(`${window.API_URL}/games/join`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -534,10 +534,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Initialiser le jeu après un court délai pour s'assurer que toutes les fonctions API sont chargées
-  setTimeout(() => {
+  /**setTimeout(() => {
     // Important: Appel à initializeGame() pour démarrer le jeu
     initializeGame();
-  }, 200);
+  }, 200);**/
 });
 
 
@@ -551,7 +551,7 @@ async function getGameDetails(gameId) {
   console.log(`Tentative de récupération des détails de la partie ${gameId}`);
   
   try {
-    const url = `${API_URL}/games/detail?id=${gameId}`;
+    const url = `${window.API_URL}/games/detail?id=${gameId}`;
     console.log(`URL de la requête: ${url}`);
     console.log(`Cookies disponibles: ${document.cookie}`);
     
@@ -608,7 +608,7 @@ async function getGameDetails(gameId) {
 // Fonction pour récupérer les parties actives
 async function getActiveGames() {
   try {
-    const response = await fetch(`${API_URL}/games/active`, {
+    const response = await fetch(`${window.API_URL}/games/active`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -656,7 +656,7 @@ async function getActiveGames() {
 // Fonction pour effectuer un tir
 async function makeShot(gameId, x, y) {
   try {
-    const response = await fetch(`${API_URL}/games/shot`, {
+    const response = await fetch(`${window.API_URL}/games/shot`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -680,7 +680,7 @@ async function makeShot(gameId, x, y) {
 // Fonction pour abandonner une partie
 async function abandonGame(gameId) {
   try {
-    const response = await fetch(`${API_URL}/games/dabandon`, {
+    const response = await fetch(`${window.API_URL}/games/dabandon`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -699,7 +699,7 @@ async function abandonGame(gameId) {
 // Récupérer le profil utilisateur
 async function getUserProfile() {
   try {
-    const response = await fetch(`${API_URL}/users/profile`, {
+    const response = await fetch(`${window.API_URL}/users/profile`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -717,7 +717,7 @@ async function getUserProfile() {
 // Récupérer les statistiques de l'utilisateur
 async function getUserStats() {
   try {
-    const response = await fetch(`${API_URL}/users/stats`, {
+    const response = await fetch(`${window.API_URL}/users/stats`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -735,7 +735,8 @@ async function getUserStats() {
 // Récupérer le classement
 async function getLeaderboard() {
   try {
-    const response = await fetch(`${API_URL}/users/leaderboard`, {
+    const response = await fetch(`${window.API_URL
+    }/users/leaderboard`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'

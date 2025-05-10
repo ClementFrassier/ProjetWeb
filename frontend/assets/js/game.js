@@ -268,7 +268,10 @@ function setupEventListeners() {
 
 // Gestion du clic sur une cellule de la grille du joueur (placement des navires)
 function handleCellClick(event) {
-  if (gameStatus !== 'setup' || !selectedShipType) return;
+  if ((gameStatus !== 'setup' && gameStatus !== 'waiting') || !selectedShipType) {
+    console.log("Clic ignoré - gameStatus:", gameStatus, "selectedShipType:", selectedShipType);
+    return;
+  }
   
   const x = parseInt(event.target.dataset.x);
   const y = parseInt(event.target.dataset.y);
@@ -486,10 +489,14 @@ async function checkGameStatus() {
     }
     
     const game = response.game;
-    
-    // Mise à jour du statut
-    gameStatus = game.status;
-    
+    if (game.status === 'waiting' && game.player1_id === getUserId()) {
+      gameStatus = 'setup';
+      console.log("Partie en attente, passage en mode setup pour placement des navires");
+    } else {
+      gameStatus = game.status;
+    }
+  
+      
     // Afficher un message selon le statut
     const statusMessage = document.getElementById('status-message');
     if (statusMessage) {

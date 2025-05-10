@@ -1,6 +1,19 @@
 // frontend/assets/js/auth.js
 
-// Vérifier si l'utilisateur est connecté
+// Vérifier si l'utilisateur est connecté*
+console.log("window.API_URL:", window.API_URL);
+console.log("Type of window.API_URL:", typeof window.API_URL);
+
+// Si API_URL n'est pas défini, on utilise une valeur par défaut
+const API_URL = window.API_URL || 'http://localhost:3000/api';
+console.log("API_URL utilisé:", API_URL);
+
+if (!window.API_URL) {
+  console.error("API_URL n'est pas défini! Assurez-vous que config.js est chargé avant auth.js");
+  window.API_URL = 'http://localhost:3000/api'; // Fallback
+}
+
+
 async function checkAuthentication() {
   try {
     const response = await fetch(`${window.API_URL}/auth/check`, {

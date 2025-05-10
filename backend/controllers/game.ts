@@ -21,36 +21,46 @@ export const startGame = async (ctx: Context) => {
     // 1. Démarrer une transaction
     await db.query("BEGIN");
 
-    // 2. Insérer la nouvelle partie
-    await db.query(
-      "INSERT INTO games (player1_id, status) VALUES (?, 'waiting')",
-      [userId]
-    );
+    try {
+      // 2. Insérer la nouvelle partie
+      await db.query(
+        "INSERT INTO games (player1_id, status) VALUES (?, 'waiting')",
+        [userId]
+      );
 
-    // 3. Récupérer le dernier ID inséré (spécifique à SQLite)
-    const [result] = await db.query(
-      "SELECT last_insert_rowid() as id"
-    );
+      // 3. Récupérer le dernier ID inséré
+      const [result] = await db.query(
+        "SELECT last_insert_rowid() as id"
+      );
 
-    const gameId = result.id;
+      const gameId = result.id;
 
-    if (!gameId) {
-      await db.query("ROLLBACK");
-      throw new Error("Échec de la création de partie");
+      if (!gameId) {
+        await db.query("ROLLBACK");
+        throw new Error("Échec de la création de partie");
+      }
+
+      // 4. Valider la transaction
+      await db.query("COMMIT");
+
+      ctx.response.status = 201;
+      ctx.response.body = { 
+        success: true,
+        gameId: gameId,
+        message: "Partie créée avec succès"
+      };
+
+    } catch (error) {
+      // Rollback seulement si la transaction est active
+      try {
+        await db.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Erreur lors du rollback:", rollbackError);
+      }
+      throw error;
     }
 
-    // 4. Valider la transaction
-    await db.query("COMMIT");
-
-    ctx.response.status = 201;
-    ctx.response.body = { 
-      success: true,
-      gameId: gameId,
-      message: "Partie créée avec succès"
-    };
-
   } catch (error) {
-    await db.query("ROLLBACK");
     console.error("Erreur création partie:", error);
     ctx.response.status = 500;
     ctx.response.body = { 
