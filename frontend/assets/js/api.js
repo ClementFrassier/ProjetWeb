@@ -515,8 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Envoyer le message via WebSocket
         sendChatMessage(message);
         
-        // Afficher le message localement
-        addChatMessage(`Vous: ${message}`);
+        // NE PAS afficher le message localement - c'est fait dans sendChatMessage
         messageInput.value = '';
       }
     });
@@ -530,8 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Envoyer le message via WebSocket
           sendChatMessage(message);
           
-          // Afficher le message localement
-          addChatMessage(`Vous: ${message}`);
+          // NE PAS afficher le message localement - c'est fait dans sendChatMessage
           messageInput.value = '';
         }
       }
@@ -544,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeGame();
   }, 200);**/
 });
+
 
 
 async function getGameDetails(gameId) {

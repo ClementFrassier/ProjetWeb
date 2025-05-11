@@ -1,5 +1,4 @@
 // backend/utils/websocket.ts
-import { WebSocket } from "https://deno.land/std@0.110.0/ws/mod.ts";
 import { db } from "../config/db.ts";
 
 // Structure pour stocker les connexions websocket actives
@@ -19,21 +18,27 @@ export async function handleWebSocket(socket: WebSocket, gameId: string) {
   console.log(`Nouvelle connexion WebSocket pour la partie ${gameId}`);
 
   try {
-    // Écouter les messages
-    for await (const message of socket) {
-      if (typeof message === "string") {
-        try {
-          const data = JSON.parse(message);
-          await handleMessage(socket, data, gameId);
-        } catch (error) {
-          console.error("Erreur parse message:", error);
-        }
+    // Configurer les gestionnaires d'événements
+    socket.onmessage = async (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        await handleMessage(socket, data, gameId);
+      } catch (error) {
+        console.error("Erreur parse message:", error);
       }
-    }
+    };
+
+    socket.onclose = async () => {
+      console.log(`WebSocket fermé pour la partie ${gameId}`);
+      await handleDisconnect(socket, gameId);
+    };
+
+    socket.onerror = (error) => {
+      console.error("Erreur WebSocket:", error);
+    };
+
   } catch (error) {
-    console.error("Erreur WebSocket:", error);
-  } finally {
-    await handleDisconnect(socket, gameId);
+    console.error("Erreur configuration WebSocket:", error);
   }
 }
 
@@ -83,8 +88,8 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
   );
 
   if (gameInfo.length > 0) {
-    const player1Id = gameInfo[0][1];
-    const player2Id = gameInfo[0][2];
+    const player1Id = gameInfo[0][0];
+    const player2Id = gameInfo[0][1];
 
     console.log("GameInfo from DB:", { player1Id, player2Id, userId });
 
@@ -212,7 +217,7 @@ function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket
   const jsonMessage = JSON.stringify(message);
 
   // Envoyer à player1 si ce n'est pas l'émetteur
-  if (gameConnection.player1 && gameConnection.player1 !== excludeSocket) {
+  if (gameConnection.player1 && gameConnection.player1 !== excludeSocket && gameConnection.player1.readyState === WebSocket.OPEN) {
     try {
       console.log("Envoi au joueur 1");
       gameConnection.player1.send(jsonMessage);
@@ -223,7 +228,7 @@ function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket
   }
 
   // Envoyer à player2 si ce n'est pas l'émetteur
-  if (gameConnection.player2 && gameConnection.player2 !== excludeSocket) {
+  if (gameConnection.player2 && gameConnection.player2 !== excludeSocket && gameConnection.player2.readyState === WebSocket.OPEN) {
     try {
       console.log("Envoi au joueur 2");
       gameConnection.player2.send(jsonMessage);
@@ -253,7 +258,7 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
             "SELECT player1_id FROM games WHERE id = ?",
             [gameId]
           );
-          if (gameInfo.length > 0 && gameInfo[0][1] == userId) {
+          if (gameInfo.length > 0 && gameInfo[0][0] == userId) {
             disconnectedUserId = userId;
             break;
           }
@@ -270,7 +275,7 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
             "SELECT player2_id FROM games WHERE id = ?",
             [gameId]
           );
-          if (gameInfo.length > 0 && gameInfo[0][1] == userId) {
+          if (gameInfo.length > 0 && gameInfo[0][0] == userId) {
             disconnectedUserId = userId;
             break;
           }
