@@ -63,10 +63,41 @@
     <p>&copy; 2025 Bataille Navale - Projet Web</p>
   </footer>
 
-  <!-- Important: Charger config.js en premier -->
+  <!-- Scripts dans le bon ordre -->
   <script src="../assets/js/config.js"></script>
   <script src="../assets/js/auth.js"></script>
-  <script src="../assets/js/websocket.js"></script> <!-- DÉPLACER AVANT game.js -->
+  
+  <!-- Script inline pour exposer addChatMessage avant le chargement de websocket.js -->
+  <script>
+    // Définir addChatMessage globalement dès le départ
+    window.addChatMessage = function(message) {
+      const chatMessages = document.getElementById('chat-messages');
+      if (!chatMessages) {
+        console.warn("Element chat-messages non trouvé, mise en attente du message");
+        // Mettre en file d'attente le message
+        window.pendingMessages = window.pendingMessages || [];
+        window.pendingMessages.push(message);
+        return;
+      }
+      
+      const messageElement = document.createElement('div');
+      messageElement.className = 'message';
+      const timestamp = new Date().toLocaleTimeString();
+      messageElement.textContent = `[${timestamp}] ${message}`;
+      chatMessages.appendChild(messageElement);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+    
+    // Vérifier les messages en attente après le chargement
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.pendingMessages && window.pendingMessages.length > 0) {
+        window.pendingMessages.forEach(msg => window.addChatMessage(msg));
+        window.pendingMessages = [];
+      }
+    });
+  </script>
+  
+  <script src="../assets/js/websocket.js"></script>
   <script src="../assets/js/api.js"></script>
   <script src="../assets/js/ship.js"></script>
   <script src="../assets/js/game.js"></script>

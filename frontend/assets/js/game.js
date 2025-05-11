@@ -611,22 +611,27 @@ async function handleShotClick(event) {
 // Ajouter un message au chat
 function addChatMessage(message) {
   const chatMessages = document.getElementById('chat-messages');
-  if (!chatMessages) return;
+  if (!chatMessages) {
+    console.error("Element chat-messages non trouvé");
+    return;
+  }
   
   const messageElement = document.createElement('div');
   messageElement.className = 'message';
-  messageElement.textContent = message;
+  
+  // Ajouter un timestamp au message
+  const timestamp = new Date().toLocaleTimeString();
+  messageElement.textContent = `[${timestamp}] ${message}`;
+  
   chatMessages.appendChild(messageElement);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-} 
-
-// Obtenir l'ID de l'utilisateur connecté
-function getUserId() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  return user.id || null;
+  
+  console.log("Message ajouté au chat:", message);
 }
 
-// Fonction pour envoyer un message de chat (stub)
+// Exposer la fonction immédiatement
+window.addChatMessage = addChatMessage;
+
 // Fonction pour envoyer un message de chat
 function handleChatSend(message) {
   console.log("Envoi du message:", message);
@@ -636,16 +641,14 @@ function handleChatSend(message) {
     window.sendChatMessage(message);
   } else {
     console.error("WebSocket sendChatMessage non disponible");
+    // Si WebSocket non disponible, afficher quand même le message localement
     addChatMessage(`Vous (hors ligne): ${message}`);
   }
 }
 
-// Ne pas exposer cette fonction globalement pour éviter la confusion
-// window.sendChatMessage = sendChatMessage; // Commentez ou supprimez cette ligne
-
-
+// Configuration des événements après le chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
-  console.log("DOM entièrement chargé");
+  console.log("DOM entièrement chargé pour le chat");
   
   const messageInput = document.getElementById('message-input');
   const sendButton = document.getElementById('send-message');
@@ -654,7 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', () => {
       const message = messageInput?.value?.trim();
       if (message) {
-        handleChatSend(message); // Utiliser handleChatSend au lieu de sendChatMessage
+        handleChatSend(message);
         if (messageInput) messageInput.value = '';
       }
     });
@@ -665,12 +668,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         const message = messageInput.value.trim();
         if (message) {
-          handleChatSend(message); // Utiliser handleChatSend
+          handleChatSend(message);
           messageInput.value = '';
         }
       }
     });
   }
+  
+  // Réexposer la fonction au cas où
+  window.addChatMessage = addChatMessage;
 });
-
-window.addChatMessage = addChatMessage;

@@ -129,19 +129,23 @@ async function handleJoin(socket: WebSocket, message: any) {
     const player1Id = gameInfo[0][1]?.toString();
     const player2Id = gameInfo[0][2]?.toString();
 
-    console.log("GameInfo:", { player1Id, player2Id, userIdStr });
+    console.log("GameInfo from DB:", { player1Id, player2Id, userIdStr });
 
     // Affecter correctement le socket selon l'ID
     if (userIdStr === player1Id) {
       game.player1 = socket;
-      console.log(`Joueur 1 (${userId}) a rejoint la partie ${gameId}`);
+      console.log(`Joueur 1 (ID: ${userId}) a rejoint la partie ${gameId}`);
     } else if (userIdStr === player2Id) {
       game.player2 = socket;
-      console.log(`Joueur 2 (${userId}) a rejoint la partie ${gameId}`);
+      console.log(`Joueur 2 (ID: ${userId}) a rejoint la partie ${gameId}`);
     } else {
       console.log(`Joueur ${userId} n'est pas dans la partie ${gameId}`);
+      return; // Important: sortir si le joueur n'est pas dans la partie
     }
   }
+
+  // Mettre à jour les connexions
+  gameConnections.set(gameIdStr, game);
 
   // Afficher l'état actuel
   console.log("État actuel des connexions:", {
@@ -158,6 +162,7 @@ async function handleJoin(socket: WebSocket, message: any) {
     message: `Un joueur a rejoint la partie ${gameId}`
   });
 }
+
 // Gérer un tir
 async function handleShot(socket: WebSocket, message: any) {
   const { gameId, userId, x, y } = message;
@@ -232,19 +237,27 @@ async function handleChat(socket: WebSocket, message: any) {
   const game = gameConnections.get(gameIdStr);
   console.log("Connexions pour la partie:", gameIdStr, game);
 
-  // Diffuser le message
-  broadcastToGame(gameIdStr, {
+  // Créer un message avec username basé sur le userId
+  const broadcastMessage = {
     type: "chat",
     userId: userId,
     username: `Joueur ${userId}`,
-    message: chatMessage
-  });
+    message: chatMessage,
+    timestamp: new Date().toISOString()
+  };
+
+  // Diffuser le message
+  broadcastToGame(gameIdStr, broadcastMessage);
 }
+
 // Fonction utilitaire pour diffuser un message à tous les joueurs d'une partie
 function broadcastToGame(gameId: string, message: any) {
-  const game = gameConnections.get(gameId.toString());
+  const game = gameConnections.get(gameId);
   console.log(`Broadcasting to game ${gameId}:`, message);
-  console.log("Current connections:", game);
+  console.log("Current connections:", {
+    player1: game?.player1 ? "connected" : "not connected",
+    player2: game?.player2 ? "connected" : "not connected"
+  });
   
   if (!game) {
     console.error(`Aucune connexion trouvée pour la partie ${gameId}`);
@@ -262,8 +275,6 @@ function broadcastToGame(gameId: string, message: any) {
       console.error("Erreur d'envoi au joueur 1:", error);
       game.player1 = undefined; // Nettoyer la connexion défaillante
     }
-  } else {
-    console.log("Joueur 1 non connecté");
   }
 
   if (game.player2) {
@@ -274,7 +285,5 @@ function broadcastToGame(gameId: string, message: any) {
       console.error("Erreur d'envoi au joueur 2:", error);
       game.player2 = undefined; // Nettoyer la connexion défaillante
     }
-  } else {
-    console.log("Joueur 2 non connecté");
   }
 }
