@@ -38,6 +38,8 @@ function checkRequiredFunctions() {
 
 // Initialiser le jeu
 // Modification de initializeGame pour gérer les cas où l'utilisateur doit rejoindre la partie
+// Dans la fonction initializeGame(), après avoir récupéré les détails de la partie
+// Dans la fonction initializeGame(), modifiez la partie où on traite le gameId depuis l'URL
 async function initializeGame() {
   console.log('Initialisation du jeu...');
   
@@ -84,39 +86,16 @@ async function initializeGame() {
       // Si accès refusé, proposer de rejoindre la partie
       if (detailsResponse?.error === "Accès refusé") {
         console.log("Accès refusé - tentative de rejoindre la partie");
-        
-        // Afficher un message et proposer de rejoindre
-        const statusMessage = document.getElementById('status-message');
-        if (statusMessage) {
-          statusMessage.textContent = "Vous devez d'abord rejoindre cette partie...";
-        }
-        
-        // Tenter de rejoindre automatiquement
-        const joinResponse = await window.joinGame(currentGameId);
-        
-        if (joinResponse?.error) {
-          // Si impossible de rejoindre, afficher l'erreur
-          alert(`Impossible de rejoindre la partie: ${joinResponse.error}`);
-          // Rediriger vers le lobby
-          window.location.href = 'lobby.html';
-          return;
-        } else {
-          // Si rejoint avec succès, recharger les détails
-          console.log("Partie rejointe avec succès, rechargement...");
-          if (statusMessage) {
-            statusMessage.textContent = "Partie rejointe ! Chargement...";
-          }
-          
-          // Attendre un peu pour que le serveur mette à jour la base de données
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Réessayer de charger les détails
-          await checkGameStatus();
-          await loadExistingShips();
-        }
+        // ... code existant pour rejoindre ...
       } else if (detailsResponse?.game) {
         // Si on a accès, continuer normalement
         gameStatus = detailsResponse.game.status;
+        
+        // INITIALISER WEBSOCKET ICI - IMPORTANT!
+        console.log("Initialisation WebSocket pour la partie:", currentGameId);
+        initWebSocket(currentGameId);
+        
+        await checkGameStatus();
         await loadExistingShips();
       }
     } else {
@@ -127,7 +106,6 @@ async function initializeGame() {
     console.error("Erreur d'initialisation:", error);
   }
 }
-
 // Fonction pour obtenir l'ID de partie depuis l'URL
 function getGameIdFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);

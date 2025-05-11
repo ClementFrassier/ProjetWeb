@@ -210,9 +210,25 @@ function handleShotResult(x, y, hit, sunk) {
 }
 
 // Fonction pour envoyer un message via WebSocket
+// Fonction pour envoyer un message via WebSocket
 function sendWebSocketMessage(type, data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     console.error('WebSocket non connecté');
+    // Tentative de connexion si gameId est disponible
+    if (gameId && !socket) {
+      console.log('Tentative de connexion WebSocket...');
+      initWebSocket(gameId);
+      // Réessayer l'envoi après un délai
+      setTimeout(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          const message = {
+            type: type,
+            ...data
+          };
+          socket.send(JSON.stringify(message));
+        }
+      }, 1000);
+    }
     return;
   }
   
@@ -235,12 +251,31 @@ function sendShot(x, y) {
 }
 
 // Fonction pour envoyer un message de chat
+// Fonction pour envoyer un message de chat
 function sendChatMessage(message) {
-  sendWebSocketMessage('chat', {
-    gameId: gameId,
-    userId: userId,
-    message: message
-  });
+  console.log("Envoi du message:", message);
+  
+  // Vérifier si on a un gameId
+  if (!currentGameId) {
+    console.error("Pas de gameId disponible");
+    return;
+  }
+  
+  // Vérifier si le WebSocket est disponible dans websocket.js
+  if (typeof window.sendShot === 'function') {
+    // Si sendShot existe, utiliser sendWebSocketMessage du même fichier
+    if (typeof window.sendWebSocketMessage === 'function') {
+      window.sendWebSocketMessage('chat', {
+        gameId: currentGameId,
+        userId: getUserId(),
+        message: message
+      });
+    } else {
+      console.error("sendWebSocketMessage n'est pas disponible");
+    }
+  } else {
+    console.error("Les fonctions WebSocket ne sont pas disponibles");
+  }
 }
 
 // Fermer la connexion WebSocket
@@ -251,3 +286,10 @@ function closeWebSocket() {
     gameId = null;
   }
 }
+
+
+// Exposer les fonctions WebSocket globalement
+window.initWebSocket = initWebSocket;
+window.sendWebSocketMessage = sendWebSocketMessage;
+window.sendShot = sendShot;
+window.sendChatMessage = sendChatMessage;
