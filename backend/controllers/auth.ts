@@ -12,7 +12,8 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body().value;
+    // CORRECTION : Utiliser ctx.request.body.json() au lieu de ctx.request.body().value
+    const body = await ctx.request.body.json();
     const { username, email, password } = body;
 
     if (!username || !email || !password) {
@@ -72,7 +73,8 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body().value;
+    // CORRECTION : Utiliser ctx.request.body.json() au lieu de ctx.request.body().value
+    const body = await ctx.request.body.json();
     const { username, password } = body;
 
     if (!username || !password) {
@@ -129,7 +131,7 @@ export const loginUser = async (ctx: Context) => {
       [user[0]]
     );
 
-    // MODIFICATION IMPORTANTE : Configuration du cookie
+    // Configuration du cookie
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
       secure: false, // false car on est en localhost

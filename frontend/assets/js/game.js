@@ -192,6 +192,9 @@ async function checkForExistingGame() {
     const gameIdElement = document.getElementById('game-id');
     if (gameIdElement) gameIdElement.textContent = currentGameId;
 
+    // INITIALISER WEBSOCKET ICI - IMPORTANT
+    initWebSocket(currentGameId);
+
     // Chargement des détails
     await checkGameStatus();
     await loadExistingShips();
@@ -201,7 +204,6 @@ async function checkForExistingGame() {
     currentGameId = null;
   }
 }
-
 async function loadExistingShips() {
   if (!currentGameId) {
     console.log("Impossible de charger les navires: ID de partie non défini");
@@ -427,8 +429,6 @@ function getShipSize(type) {
 
 // Joueur prêt à commencer
 async function playerReady() {
-  console.log('Bouton prêt - currentGameId:', currentGameId);
-  
   if (placedShips.length !== 5) {
     alert("Vous devez placer vos 5 navires avant de continuer");
     return;
@@ -437,51 +437,19 @@ async function playerReady() {
   try {
     // Si aucun ID de partie n'est défini, créer une nouvelle partie
     if (!currentGameId) {
-      console.log("Tentative de création de partie...");
-      
-      // Vérifier que la fonction existe
-      if (typeof window.createGame !== 'function') {
-        throw new Error("La fonction createGame n'est pas disponible");
-      }
-      
       const response = await window.createGame();
-      console.log("Réponse création de partie:", response);
-      
       if (response?.error) {
-        throw new Error(response.error || "Échec de la création de partie");
+        throw new Error(response.error);
       }
-      
-      // S'assurer que l'ID est bien présent dans la réponse
-      if (!response?.gameId) {
-        throw new Error("ID de partie manquant dans la réponse");
-      }
-      
       currentGameId = response.gameId;
-      console.log("Partie créée avec ID:", currentGameId);
+      document.getElementById('game-id').textContent = currentGameId;
       
-      // Mettre à jour l'UI
-      const gameIdElement = document.getElementById('game-id');
-      if (gameIdElement) {
-        gameIdElement.textContent = currentGameId;
-      }
-      
-      // Attendre un court instant avant de continuer
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // INITIALISER WEBSOCKET APRÈS CRÉATION DE PARTIE
+      initWebSocket(currentGameId);
     }
 
-    // Vérifier à nouveau que currentGameId est défini
-    if (!currentGameId) {
-      throw new Error("ID de partie toujours non défini après création");
-    }
-
-    // Vérifier que la fonction placeShip existe
-    if (typeof window.placeShip !== 'function') {
-      throw new Error("La fonction placeShip n'est pas disponible");
-    }
-
-    // Placement des navires
+    // Placer tous les navires
     for (const ship of placedShips) {
-      console.log(`Placement du navire ${ship.type} en (${ship.x},${ship.y})`);
       const result = await window.placeShip(
         currentGameId,
         ship.type,
@@ -495,23 +463,68 @@ async function playerReady() {
       }
     }
 
-    // Mise à jour UI
+    // Désactiver le bouton prêt
     const readyBtn = document.getElementById('ready-btn');
-    if (readyBtn) {
-      readyBtn.disabled = true;
-    }
+    if (readyBtn) readyBtn.disabled = true;
     
+    // Mettre à jour le message
     const statusMessage = document.getElementById('status-message');
     if (statusMessage) {
-      statusMessage.textContent = "Prêt - En attente d'adversaire...";
+      statusMessage.textContent = "Navires placés. Vérification de l'adversaire...";
     }
-    
-    // Vérifier à nouveau l'état de la partie
-    setTimeout(checkGameStatus, 1000);
+
+    // Vérifier périodiquement l'état de la partie
+    const checkInterval = setInterval(async () => {
+      const response = await window.getGameDetails(currentGameId);
+      
+      if (!response?.game) return;
+      
+      const game = response.game;
+      
+      // Vérifier si les deux joueurs ont placé leurs navires
+      const shipsResponse = await fetch(`${window.API_URL}/games/checkAllShipsPlaced?gameId=${currentGameId}`, {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (shipsResponse.ok) {
+        const shipsData = await shipsResponse.json();
+        
+        if (shipsData.allShipsPlaced) {
+          // Si tous les navires sont placés, démarrer la partie
+          const startResponse = await fetch(`${window.API_URL}/games/startGame`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ gameId: currentGameId })
+          });
+          
+          if (startResponse.ok) {
+            clearInterval(checkInterval);
+            gameStatus = 'in_progress';
+            
+            // Afficher la grille adverse
+            const opponentBoard = document.getElementById('opponent-board');
+            if (opponentBoard) {
+              opponentBoard.classList.remove('hidden');
+            }
+            
+            if (statusMessage) {
+              statusMessage.textContent = "La partie commence !";
+            }
+            
+            // Appeler checkGameStatus pour initialiser le tour
+            await checkGameStatus();
+          }
+        }
+      }
+    }, 2000);
     
   } catch (error) {
     console.error("Erreur:", error);
-    alert(`Erreur: ${error.message}\nVeuillez réessayer.`);
+    alert(`Erreur: ${error.message}`);
   }
 }
 
@@ -646,11 +659,18 @@ function getUserId() {
 // Fonction pour envoyer un message de chat (stub)
 function sendChatMessage(message) {
   console.log("Envoi du message:", message);
-  // Cette fonction doit être définie dans le module WebSocket
-  if (typeof window.sendChatViaWebSocket === 'function') {
-    window.sendChatViaWebSocket(message);
+  
+  // Vérifier si la WebSocket est initialisée
+  if (typeof window.sendWebSocketMessage === 'function') {
+    window.sendWebSocketMessage('chat', {
+      gameId: currentGameId,
+      userId: getUserId(),
+      message: message
+    });
+  } else if (typeof sendChatViaWebSocket === 'function') {
+    sendChatViaWebSocket(message);
   } else {
-    console.warn("La fonction sendChatViaWebSocket n'est pas disponible");
+    console.error("Aucune fonction WebSocket disponible pour envoyer le message");
   }
 }
 

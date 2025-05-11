@@ -755,6 +755,39 @@ async function getLeaderboard() {
   }
 }
 
+async function setPlayerReady(gameId) {
+  try {
+    const response = await fetch(`${window.API_URL}/games/ready`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ gameId })
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors du marquage comme prêt:', error);
+    return { error: "Impossible de marquer comme prêt" };
+  }
+}
+
+async function checkPlayersReady(gameId) {
+  try {
+    const response = await fetch(`${window.API_URL}/games/checkReady?gameId=${gameId}`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur lors de la vérification:', error);
+    return { error: "Impossible de vérifier l'état" };
+  }
+}
+
+
 window.createGame = createGame;
 window.joinGame = joinGame;
 window.getGameDetails = getGameDetails;
@@ -764,3 +797,5 @@ window.abandonGame = abandonGame;
 window.getUserProfile = getUserProfile;
 window.getUserStats = getUserStats;
 window.getLeaderboard = getLeaderboard;
+window.setPlayerReady = setPlayerReady;
+window.checkPlayersReady = checkPlayersReady;

@@ -490,3 +490,225 @@ export const abandonGame = async (ctx: Context) => {
     ctx.response.body = { message: "Erreur serveur", error: error.message };
   }
 };
+
+export const setPlayerReady = async (ctx: Context) => {
+  try {
+    const userId = ctx.state.user.id;
+    const body = await ctx.request.body.json();
+    const { gameId } = body;
+
+    // Vérifier si le joueur a bien placé ses 5 navires
+    const playerShips = await db.query(
+      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+      [gameId, userId]
+    );
+
+    if (playerShips[0][0] !== 5) {
+      ctx.response.status = 400;
+      ctx.response.body = { 
+        error: "Vous devez placer tous vos navires avant d'être prêt"
+      };
+      return;
+    }
+
+    // Récupérer les informations de la partie
+    const games = await db.query(
+      "SELECT * FROM games WHERE id = ?",
+      [gameId]
+    );
+
+    if (games.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Partie non trouvée" };
+      return;
+    }
+
+    const game = games[0];
+    const player1Id = game[1];
+    const player2Id = game[2];
+
+    // Vérifier si les deux joueurs ont placé leurs navires
+    const player1Ships = await db.query(
+      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+      [gameId, player1Id]
+    );
+
+    let player2Ships = { 0: { 0: 0 } };
+    if (player2Id) {
+      player2Ships = await db.query(
+        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+        [gameId, player2Id]
+      );
+    }
+
+    // Si les deux joueurs ont placé leurs 5 navires, démarrer la partie
+    if (player1Ships[0][0] === 5 && player2Ships[0][0] === 5) {
+      await db.query(
+        "UPDATE games SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        [gameId]
+      );
+      
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        ready: true,
+        gameStarted: true,
+        message: "Les deux joueurs sont prêts. La partie commence !"
+      };
+    } else {
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        ready: true,
+        gameStarted: false,
+        message: "En attente que l'autre joueur place ses navires...",
+        player1Ready: player1Ships[0][0] === 5,
+        player2Ready: player2Ships[0][0] === 5
+      };
+    }
+  } catch (error) {
+    console.error("Erreur setPlayerReady:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { error: error.message };
+  }
+};
+
+export const checkPlayersReady = async (ctx: Context) => {
+  try {
+    const gameId = ctx.request.url.searchParams.get("gameId");
+    
+    if (!gameId) {
+      ctx.response.status = 400;
+      ctx.response.body = { error: "ID de partie requis" };
+      return;
+    }
+
+    const games = await db.query(
+      "SELECT * FROM games WHERE id = ?",
+      [gameId]
+    );
+
+    if (games.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Partie non trouvée" };
+      return;
+    }
+
+    const game = games[0];
+    const player1Id = game[1];
+    const player2Id = game[2];
+    const currentStatus = game[3];
+
+    // Si la partie est déjà en cours, retourner true
+    if (currentStatus === 'in_progress') {
+      ctx.response.status = 200;
+      ctx.response.body = { 
+        allReady: true,
+        gameStarted: true
+      };
+      return;
+    }
+
+    // Vérifier le nombre de navires de chaque joueur
+    const player1Ships = await db.query(
+      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+      [gameId, player1Id]
+    );
+
+    let player2Ready = false;
+    if (player2Id) {
+      const player2Ships = await db.query(
+        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+        [gameId, player2Id]
+      );
+      player2Ready = player2Ships[0][0] === 5;
+    }
+
+    const player1Ready = player1Ships[0][0] === 5;
+    const allReady = player1Ready && player2Ready && player2Id !== null;
+
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      player1Ready,
+      player2Ready,
+      allReady,
+      gameStarted: currentStatus === 'in_progress'
+    };
+  } catch (error) {
+    console.error("Erreur checkPlayersReady:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { error: error.message };
+  }
+};
+
+
+// Vérifier si tous les navires sont placés
+export const checkAllShipsPlaced = async (ctx: Context) => {
+  try {
+    const gameId = ctx.request.url.searchParams.get("gameId");
+    
+    const games = await db.query(
+      "SELECT * FROM games WHERE id = ?",
+      [gameId]
+    );
+    
+    if (games.length === 0) {
+      ctx.response.status = 404;
+      ctx.response.body = { error: "Partie non trouvée" };
+      return;
+    }
+    
+    const game = games[0];
+    const player1Id = game[1];
+    const player2Id = game[2];
+    
+    // Compter les navires de chaque joueur
+    const player1Ships = await db.query(
+      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+      [gameId, player1Id]
+    );
+    
+    let player2Ships = [[0]];
+    if (player2Id) {
+      player2Ships = await db.query(
+        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
+        [gameId, player2Id]
+      );
+    }
+    
+    const allShipsPlaced = player1Ships[0][0] === 5 && 
+                          player2Ships[0][0] === 5 && 
+                          player2Id !== null;
+    
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      allShipsPlaced,
+      player1Ships: player1Ships[0][0],
+      player2Ships: player2Ships[0][0]
+    };
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { error: error.message };
+  }
+};
+
+// Démarrer la partie
+export const startGameManual = async (ctx: Context) => {
+  try {
+    const body = await ctx.request.body.json();
+    const { gameId } = body;
+    
+    // Forcer le démarrage de la partie
+    await db.query(
+      "UPDATE games SET status = 'in_progress', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [gameId]
+    );
+    
+    ctx.response.status = 200;
+    ctx.response.body = { 
+      success: true,
+      message: "Partie démarrée"
+    };
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { error: error.message };
+  }
+};
