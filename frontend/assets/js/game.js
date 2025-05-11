@@ -618,7 +618,7 @@ function addChatMessage(message) {
   messageElement.textContent = message;
   chatMessages.appendChild(messageElement);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-}
+} 
 
 // Obtenir l'ID de l'utilisateur connecté
 function getUserId() {
