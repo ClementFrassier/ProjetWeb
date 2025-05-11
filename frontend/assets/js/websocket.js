@@ -84,12 +84,17 @@ function initWebSocket(currentGameId) {
   socket.onopen = () => {
     console.log('Connexion WebSocket établie');
     
-    // Envoyer un message pour identifier le joueur
-    sendWebSocketMessage('join', { 
+    // Créer le message join
+    const joinMessage = { 
       gameId: gameId, 
       userId: userId 
-    });
+    };
+    
+    // Envoyer un message pour identifier le joueur
+    console.log("Envoi du message join:", joinMessage);
+    sendWebSocketMessage('join', joinMessage);
   };
+  
   
   // Événement: réception d'un message
   socket.onmessage = (event) => {
@@ -126,6 +131,11 @@ function initWebSocket(currentGameId) {
     startGameStatusPolling(currentGameId);
   }
 }
+function getUserId() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return user.id || null;
+}
+
 
 // Fonction pour gérer les messages reçus via WebSocket
 function handleWebSocketMessage(data) {
@@ -266,29 +276,46 @@ function sendShot(x, y) {
 function sendChatMessage(message) {
   console.log("Envoi du message:", message);
   
-  // Vérifier si on a les IDs nécessaires
-  if (!gameId && !window.currentGameId) {
-    console.error("Pas de gameId disponible");
+  // Vérifier si WebSocket est connecté
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket non connecté - tentative de connexion...");
+    
+    // Si on a un gameId, tenter de se connecter
+    const currentGameId = gameId || window.currentGameId;
+    if (currentGameId) {
+      initWebSocket(currentGameId);
+      
+      // Attendre un peu puis réessayer
+      setTimeout(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          sendChatMessage(message);
+        } else {
+          console.error("Impossible d'envoyer le message - WebSocket toujours déconnecté");
+        }
+      }, 1000);
+    } else {
+      console.error("Pas de gameId disponible pour initialiser WebSocket");
+    }
     return;
   }
   
-  // Obtenir le gameId correct
   const currentGameId = gameId || window.currentGameId;
+  const currentUserId = userId || getUserId();
   
-  // Obtenir userId si pas déjà défini
-  if (!userId) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    userId = user.id;
+  if (!currentGameId || !currentUserId) {
+    console.error("IDs manquants:", { currentGameId, currentUserId });
+    return;
   }
   
-  // Envoyer le message
-  sendWebSocketMessage('chat', {
+  const chatData = {
     gameId: currentGameId,
-    userId: userId,
+    userId: currentUserId,
     message: message
-  });
+  };
+  
+  console.log("Données du chat à envoyer:", chatData);
+  sendWebSocketMessage('chat', chatData);
 }
-
 // Fermer la connexion WebSocket
 function closeWebSocket() {
   if (socket) {

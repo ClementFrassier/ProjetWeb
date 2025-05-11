@@ -43,14 +43,12 @@ function checkRequiredFunctions() {
 async function initializeGame() {
   console.log('Initialisation du jeu...');
   
-  // Récupérer l'ID depuis l'URL si disponible
   const urlGameId = getGameIdFromUrl();
   if (urlGameId) {
     currentGameId = urlGameId;
     console.log('ID de partie récupéré depuis l\'URL:', currentGameId);
   }
   
-  // Attendre que toutes les fonctions soient disponibles
   if (!checkRequiredFunctions()) {
     console.log('En attente des dépendances...');
     setTimeout(initializeGame, 100);
@@ -59,7 +57,6 @@ async function initializeGame() {
 
   console.log('Toutes les dépendances sont chargées, démarrage...');
 
-  // Réinitialisation des variables si pas d'ID dans l'URL
   if (!currentGameId) {
     currentGameId = null;
   }
@@ -68,38 +65,36 @@ async function initializeGame() {
   placedShips = [];
   gameStatus = 'setup';
 
-  // Création des éléments UI
   createGameBoards();
   setupEventListeners();
 
   try {
-    // Si on a déjà un ID, charger directement cette partie
     if (currentGameId) {
       const gameIdElement = document.getElementById('game-id');
       if (gameIdElement) {
         gameIdElement.textContent = currentGameId;
       }
       
-      // Tentative de récupération des détails
       const detailsResponse = await window.getGameDetails(currentGameId);
       
-      // Si accès refusé, proposer de rejoindre la partie
       if (detailsResponse?.error === "Accès refusé") {
         console.log("Accès refusé - tentative de rejoindre la partie");
-        // ... code existant pour rejoindre ...
+        // Logique pour rejoindre...
       } else if (detailsResponse?.game) {
-        // Si on a accès, continuer normalement
         gameStatus = detailsResponse.game.status;
         
-        // INITIALISER WEBSOCKET ICI - IMPORTANT!
+        // INITIALISER WEBSOCKET ICI AUSSI
         console.log("Initialisation WebSocket pour la partie:", currentGameId);
-        initWebSocket(currentGameId);
+        if (typeof initWebSocket === 'function') {
+          initWebSocket(currentGameId);
+        } else {
+          console.error("initWebSocket n'est pas définie");
+        }
         
         await checkGameStatus();
         await loadExistingShips();
       }
     } else {
-      // Sinon, vérifier s'il y a des parties existantes
       await checkForExistingGame();
     }
   } catch (error) {
@@ -126,30 +121,20 @@ async function checkForExistingGame() {
 
     console.log("Réponse brute de getActiveGames:", JSON.stringify(response));
 
-    // Vérification approfondie de la structure
-    if (!response?.games || !Array.isArray(response.games)) {
-      console.error("Format de réponse invalide - games n'est pas un tableau");
-      return;
-    }
-
-    if (response.games.length === 0) {
+    if (!response?.games || !Array.isArray(response.games) || response.games.length === 0) {
       console.log("Aucune partie existante");
       currentGameId = null;
       return;
     }
 
-    // Debug: Inspecter la première partie
     const firstGame = response.games[0];
     console.log("Structure première partie:", JSON.stringify(firstGame));
 
-    // Extraction de l'ID selon le format
     let gameId;
     if (Array.isArray(firstGame)) {
-      // Format tableau [id, player1_id, player2_id, ...]
       gameId = firstGame[0];
       console.log("ID extrait (format tableau):", gameId);
     } else if (firstGame && typeof firstGame === 'object') {
-      // Format objet {id: ..., player1_id: ...}
       gameId = firstGame.id;
       console.log("ID extrait (format objet):", gameId);
     } else {
@@ -157,7 +142,6 @@ async function checkForExistingGame() {
       return;
     }
 
-    // Validation stricte
     if (!gameId || gameId === 'undefined' || gameId === 'null') {
       console.error("ID invalide:", gameId);
       return;
@@ -166,11 +150,10 @@ async function checkForExistingGame() {
     currentGameId = gameId.toString();
     console.log("Partie trouvée, ID valide:", currentGameId);
 
-    // Mise à jour UI
     const gameIdElement = document.getElementById('game-id');
     if (gameIdElement) gameIdElement.textContent = currentGameId;
 
-    // INITIALISER WEBSOCKET ICI - IMPORTANT
+    // IMPORTANT: Initialiser WebSocket ICI
     console.log("Initialisation WebSocket pour la partie:", currentGameId);
     if (typeof initWebSocket === 'function') {
       initWebSocket(currentGameId);
@@ -178,7 +161,6 @@ async function checkForExistingGame() {
       console.error("initWebSocket n'est pas définie");
     }
 
-    // Chargement des détails
     await checkGameStatus();
     await loadExistingShips();
 
