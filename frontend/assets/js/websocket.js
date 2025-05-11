@@ -5,6 +5,11 @@ let socket = null;
 let gameId = null;
 let userId = null;
 
+// Vérifier l'état de la connexion
+function isWebSocketConnected() {
+  return socket && socket.readyState === WebSocket.OPEN;
+}
+
 // Fonction pour initialiser la connexion WebSocket
 function startGameStatusPolling(gameId) {
   // Vérifier toutes les 3 secondes si la partie est en attente
@@ -43,9 +48,14 @@ function startGameStatusPolling(gameId) {
   }, 3000);
 }
 
-
 // Fonction pour initialiser la connexion WebSocket
 function initWebSocket(currentGameId) {
+  // Vérifier si déjà connecté
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    console.log("WebSocket déjà connecté");
+    return;
+  }
+  
   // Stocker l'ID de la partie
   gameId = currentGameId;
   
@@ -60,9 +70,12 @@ function initWebSocket(currentGameId) {
   
   // URL de connexion WebSocket
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${wsProtocol}//${window.location.hostname}:3000/ws/game/${gameId}`;
+  const wsHost = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+  const wsUrl = `${wsProtocol}//${wsHost}:3000/ws/game/${gameId}`;
   
   console.log(`Tentative de connexion WebSocket à ${wsUrl}`);
+  console.log("GameID:", gameId);
+  console.log("UserID:", userId);
   
   // Créer une nouvelle connexion WebSocket
   socket = new WebSocket(wsUrl);
@@ -210,7 +223,6 @@ function handleShotResult(x, y, hit, sunk) {
 }
 
 // Fonction pour envoyer un message via WebSocket
-// Fonction pour envoyer un message via WebSocket
 function sendWebSocketMessage(type, data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     console.error('WebSocket non connecté');
@@ -251,31 +263,30 @@ function sendShot(x, y) {
 }
 
 // Fonction pour envoyer un message de chat
-// Fonction pour envoyer un message de chat
 function sendChatMessage(message) {
   console.log("Envoi du message:", message);
   
-  // Vérifier si on a un gameId
-  if (!currentGameId) {
+  // Vérifier si on a les IDs nécessaires
+  if (!gameId && !window.currentGameId) {
     console.error("Pas de gameId disponible");
     return;
   }
   
-  // Vérifier si le WebSocket est disponible dans websocket.js
-  if (typeof window.sendShot === 'function') {
-    // Si sendShot existe, utiliser sendWebSocketMessage du même fichier
-    if (typeof window.sendWebSocketMessage === 'function') {
-      window.sendWebSocketMessage('chat', {
-        gameId: currentGameId,
-        userId: getUserId(),
-        message: message
-      });
-    } else {
-      console.error("sendWebSocketMessage n'est pas disponible");
-    }
-  } else {
-    console.error("Les fonctions WebSocket ne sont pas disponibles");
+  // Obtenir le gameId correct
+  const currentGameId = gameId || window.currentGameId;
+  
+  // Obtenir userId si pas déjà défini
+  if (!userId) {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    userId = user.id;
   }
+  
+  // Envoyer le message
+  sendWebSocketMessage('chat', {
+    gameId: currentGameId,
+    userId: userId,
+    message: message
+  });
 }
 
 // Fermer la connexion WebSocket
@@ -287,9 +298,9 @@ function closeWebSocket() {
   }
 }
 
-
 // Exposer les fonctions WebSocket globalement
 window.initWebSocket = initWebSocket;
 window.sendWebSocketMessage = sendWebSocketMessage;
 window.sendShot = sendShot;
 window.sendChatMessage = sendChatMessage;
+window.isWebSocketConnected = isWebSocketConnected;
