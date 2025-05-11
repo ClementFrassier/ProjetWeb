@@ -6,6 +6,12 @@ let selectedShipType = null;
 let placedShips = [];
 let gameStatus = 'setup'; // 'setup', 'playing', 'finished'
 
+console.log("sendChatMessage dans game.js:", typeof sendChatMessage);
+console.log("window.sendChatMessage:", typeof window.sendChatMessage);
+console.log("Sont identiques ?", sendChatMessage === window.sendChatMessage);
+
+console.log("window.sendChatMessage après chargement:", typeof window.sendChatMessage);
+console.log("Source de sendChatMessage:", window.sendChatMessage?.toString?.().substring(0, 50));
 /**
  * Vérifie si les fonctions requises sont disponibles
  * @returns {boolean} Vrai si toutes les fonctions sont disponibles
@@ -153,12 +159,9 @@ async function checkForExistingGame() {
     const gameIdElement = document.getElementById('game-id');
     if (gameIdElement) gameIdElement.textContent = currentGameId;
 
-    // IMPORTANT: Initialiser WebSocket ICI
-    console.log("Initialisation WebSocket pour la partie:", currentGameId);
-    if (typeof initWebSocket === 'function') {
-      initWebSocket(currentGameId);
-    } else {
-      console.error("initWebSocket n'est pas définie");
+    // AJOUTER CETTE LIGNE !
+    if (typeof window.initWebSocket === 'function') {
+      window.initWebSocket(currentGameId);
     }
 
     await checkGameStatus();
@@ -624,31 +627,21 @@ function getUserId() {
 }
 
 // Fonction pour envoyer un message de chat (stub)
-function sendChatMessage(message) {
+// Fonction pour envoyer un message de chat
+function handleChatSend(message) {
   console.log("Envoi du message:", message);
   
-  // Vérifier si la WebSocket est initialisée et connectée
+  // Utiliser directement la fonction WebSocket
   if (typeof window.sendChatMessage === 'function') {
     window.sendChatMessage(message);
-  } else if (typeof window.sendChatViaWebSocket === 'function') {
-    window.sendChatViaWebSocket(message);
   } else {
-    console.error("Aucune fonction WebSocket disponible pour envoyer le message");
-    
-    // Tentative de connexion si gameId disponible
-    if (currentGameId && typeof window.initWebSocket === 'function') {
-      console.log("Tentative d'initialisation WebSocket...");
-      window.initWebSocket(currentGameId);
-      
-      // Réessayer après un délai
-      setTimeout(() => {
-        if (typeof window.sendChatMessage === 'function') {
-          window.sendChatMessage(message);
-        }
-      }, 1000);
-    }
+    console.error("WebSocket sendChatMessage non disponible");
+    addChatMessage(`Vous (hors ligne): ${message}`);
   }
 }
+
+// Ne pas exposer cette fonction globalement pour éviter la confusion
+// window.sendChatMessage = sendChatMessage; // Commentez ou supprimez cette ligne
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -661,8 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', () => {
       const message = messageInput?.value?.trim();
       if (message) {
-        sendChatMessage(message);
-        addChatMessage(`Vous: ${message}`);
+        handleChatSend(message); // Utiliser handleChatSend au lieu de sendChatMessage
         if (messageInput) messageInput.value = '';
       }
     });
@@ -673,11 +665,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         const message = messageInput.value.trim();
         if (message) {
-          sendChatMessage(message);
-          addChatMessage(`Vous: ${message}`);
+          handleChatSend(message); // Utiliser handleChatSend
           messageInput.value = '';
         }
       }
     });
   }
 });
+
+window.addChatMessage = addChatMessage;

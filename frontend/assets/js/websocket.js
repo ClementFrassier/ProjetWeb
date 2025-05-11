@@ -139,6 +139,8 @@ function getUserId() {
 
 // Fonction pour gérer les messages reçus via WebSocket
 function handleWebSocketMessage(data) {
+  console.log("Message WebSocket reçu:", data);
+
   switch (data.type) {
     case 'game_joined':
       // Un joueur a rejoint la partie
@@ -274,28 +276,11 @@ function sendShot(x, y) {
 
 // Fonction pour envoyer un message de chat
 function sendChatMessage(message) {
-  console.log("Envoi du message:", message);
+  console.log("Envoi du message via WebSocket:", message);
   
   // Vérifier si WebSocket est connecté
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-    console.error("WebSocket non connecté - tentative de connexion...");
-    
-    // Si on a un gameId, tenter de se connecter
-    const currentGameId = gameId || window.currentGameId;
-    if (currentGameId) {
-      initWebSocket(currentGameId);
-      
-      // Attendre un peu puis réessayer
-      setTimeout(() => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-          sendChatMessage(message);
-        } else {
-          console.error("Impossible d'envoyer le message - WebSocket toujours déconnecté");
-        }
-      }, 1000);
-    } else {
-      console.error("Pas de gameId disponible pour initialiser WebSocket");
-    }
+    console.error("WebSocket non connecté");
     return;
   }
   
@@ -315,6 +300,11 @@ function sendChatMessage(message) {
   
   console.log("Données du chat à envoyer:", chatData);
   sendWebSocketMessage('chat', chatData);
+  
+  // Afficher le message localement
+  if (typeof window.addChatMessage === 'function') {
+    window.addChatMessage(`Vous: ${message}`);
+  }
 }
 // Fermer la connexion WebSocket
 function closeWebSocket() {
@@ -331,3 +321,4 @@ window.sendWebSocketMessage = sendWebSocketMessage;
 window.sendShot = sendShot;
 window.sendChatMessage = sendChatMessage;
 window.isWebSocketConnected = isWebSocketConnected;
+window.addChatMessage = addChatMessage;

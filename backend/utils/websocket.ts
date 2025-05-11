@@ -50,7 +50,10 @@ export async function handleWebSocket(socket: WebSocket, gameId: string) {
 }
 
 // Gérer les différents types de messages
+// Dans handleMessage
 async function handleMessage(socket: WebSocket, message: any) {
+  console.log(`Message reçu:`, message);
+  
   switch (message.type) {
     case "join":
       await handleJoin(socket, message);
@@ -59,6 +62,7 @@ async function handleMessage(socket: WebSocket, message: any) {
       await handleShot(socket, message);
       break;
     case "chat":
+      console.log("Message chat reçu:", message);
       await handleChat(socket, message);
       break;
     default:
@@ -92,19 +96,27 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
 }
 
 // Gérer l'action de rejoindre une partie
+// Dans handleJoin
 async function handleJoin(socket: WebSocket, message: any) {
   const { gameId, userId } = message;
   console.log("Join request:", { gameId, userId });
   
-  if (!gameId || !userId) return;
+  if (!gameId || !userId) {
+    console.log("Join - données manquantes:", { gameId, userId });
+    return;
+  }
+
+  // Convertir en string pour être sûr
+  const gameIdStr = gameId.toString();
+  const userIdStr = userId.toString();
 
   // Enregistrer l'association utilisateur-partie
-  userGames.set(userId, gameId);
+  userGames.set(userIdStr, gameIdStr);
 
-  let game = gameConnections.get(gameId);
+  let game = gameConnections.get(gameIdStr);
   if (!game) {
     game = {};
-    gameConnections.set(gameId, game);
+    gameConnections.set(gameIdStr, game);
   }
 
   // Vérifier dans la DB quel est le rôle du joueur
@@ -114,21 +126,32 @@ async function handleJoin(socket: WebSocket, message: any) {
   );
 
   if (gameInfo.length > 0) {
-    const player1Id = gameInfo[0][1];
-    const player2Id = gameInfo[0][2];
+    const player1Id = gameInfo[0][1]?.toString();
+    const player2Id = gameInfo[0][2]?.toString();
+
+    console.log("GameInfo:", { player1Id, player2Id, userIdStr });
 
     // Affecter correctement le socket selon l'ID
-    if (userId === player1Id) {
+    if (userIdStr === player1Id) {
       game.player1 = socket;
       console.log(`Joueur 1 (${userId}) a rejoint la partie ${gameId}`);
-    } else if (userId === player2Id) {
+    } else if (userIdStr === player2Id) {
       game.player2 = socket;
       console.log(`Joueur 2 (${userId}) a rejoint la partie ${gameId}`);
+    } else {
+      console.log(`Joueur ${userId} n'est pas dans la partie ${gameId}`);
     }
   }
 
-  // Informer du join
-  broadcastToGame(gameId, {
+  // Afficher l'état actuel
+  console.log("État actuel des connexions:", {
+    gameId: gameIdStr,
+    player1: game.player1 ? "connecté" : "non connecté",
+    player2: game.player2 ? "connecté" : "non connecté"
+  });
+
+  // Informer les joueurs
+  broadcastToGame(gameIdStr, {
     type: "game_joined",
     userId: userId,
     username: `Joueur ${userId}`,
@@ -202,21 +225,24 @@ async function handleChat(socket: WebSocket, message: any) {
     return;
   }
 
-  const game = gameConnections.get(gameId);
-  console.log("Connexions pour la partie:", game);
-  
-  // Diffuser le message à tous les joueurs de la partie
-  broadcastToGame(gameId, {
+  // Convertir en string
+  const gameIdStr = gameId.toString();
+
+  // Vérifier les connexions
+  const game = gameConnections.get(gameIdStr);
+  console.log("Connexions pour la partie:", gameIdStr, game);
+
+  // Diffuser le message
+  broadcastToGame(gameIdStr, {
     type: "chat",
     userId: userId,
-    username: `Joueur ${userId.substring(0, 5)}...`,
+    username: `Joueur ${userId}`,
     message: chatMessage
   });
 }
-
 // Fonction utilitaire pour diffuser un message à tous les joueurs d'une partie
 function broadcastToGame(gameId: string, message: any) {
-  const game = gameConnections.get(gameId);
+  const game = gameConnections.get(gameId.toString());
   console.log(`Broadcasting to game ${gameId}:`, message);
   console.log("Current connections:", game);
   
@@ -234,7 +260,10 @@ function broadcastToGame(gameId: string, message: any) {
       game.player1.send(jsonMessage);
     } catch (error) {
       console.error("Erreur d'envoi au joueur 1:", error);
+      game.player1 = undefined; // Nettoyer la connexion défaillante
     }
+  } else {
+    console.log("Joueur 1 non connecté");
   }
 
   if (game.player2) {
@@ -243,14 +272,9 @@ function broadcastToGame(gameId: string, message: any) {
       game.player2.send(jsonMessage);
     } catch (error) {
       console.error("Erreur d'envoi au joueur 2:", error);
+      game.player2 = undefined; // Nettoyer la connexion défaillante
     }
+  } else {
+    console.log("Joueur 2 non connecté");
   }
-}
-// Fonction pour notifier la fin d'une partie
-export function notifyGameOver(gameId: string, winnerId: string) {
-  broadcastToGame(gameId, {
-    type: "game_over",
-    winner: winnerId,
-    message: `Joueur ${winnerId.substring(0, 5)}... a gagné la partie!`
-  });
 }
