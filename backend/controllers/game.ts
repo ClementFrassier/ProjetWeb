@@ -110,9 +110,11 @@ export const startGameAlternative = async (ctx: Context) => {
 };
 
 // backend/controllers/game.ts - Fonction joinGame corrigée
+// backend/controllers/game.ts - Fonction joinGame corrigée
 export const joinGame = async (ctx: Context) => {
   try {
-    const body = await ctx.request.body.json();
+    // Correction de la syntaxe Oak v17
+    const body = await ctx.request.body.json(); 
     const gameId = parseInt(body.gameId);
     const userId = ctx.state.user.id;
     
@@ -245,7 +247,7 @@ export const getGameDetails = async (ctx: Context) => {
 export const makeShot = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
-    const body = await ctx.request.body().value;
+    const body = await ctx.request.body.json(); 
     const { gameId, x_position, y_position } = body;
     
     if (!gameId) {
@@ -427,7 +429,7 @@ export const getAvailableGames = async (ctx: Context) => {
 export const abandonGame = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
-    const body = await ctx.request.body().value;
+    const body = await ctx.request.body.json(); 
     const { gameId } = body;
 
     if (!gameId) {

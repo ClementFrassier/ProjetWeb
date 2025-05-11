@@ -12,7 +12,7 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body.json();
+    const body = await ctx.request.body().value;
     const { username, email, password } = body;
 
     if (!username || !email || !password) {
@@ -72,7 +72,7 @@ export const loginUser = async (ctx: Context) => {
       return;
     }
 
-    const body = await ctx.request.body.json(); 
+    const body = await ctx.request.body().value;
     const { username, password } = body;
 
     if (!username || !password) {
