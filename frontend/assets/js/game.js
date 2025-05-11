@@ -657,7 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton.addEventListener('click', () => {
       const message = messageInput?.value?.trim();
       if (message) {
-        handleChatSend(message);
         if (messageInput) messageInput.value = '';
       }
     });
@@ -668,7 +667,6 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') {
         const message = messageInput.value.trim();
         if (message) {
-          handleChatSend(message);
           messageInput.value = '';
         }
       }

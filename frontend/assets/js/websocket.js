@@ -197,13 +197,14 @@ function sendChatMessage(message) {
   
   const currentGameId = gameId || window.currentGameId;
   const currentUserId = userId || getUserId();
-  
+  /** 
   if (!currentGameId || !currentUserId) {
     console.error("IDs manquants:", { currentGameId, currentUserId });
     return;
-  }
+  }*/
   
   const chatData = {
+    type : 'chat',
     gameId: currentGameId,
     userId: currentUserId,
     message: message
