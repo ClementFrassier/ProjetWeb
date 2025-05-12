@@ -1,6 +1,6 @@
 // Variables globales
 let currentGameId = null;
-let isMyTurn = false;
+//let isMyTurn = false;
 let currentOrientation = 'horizontal';
 let selectedShipType = null;
 let placedShips = [];
@@ -67,7 +67,7 @@ async function initializeGame() {
     currentGameId = null;
   }
   
-  isMyTurn = false;
+  window.isMyTurn = false;
   placedShips = [];
   gameStatus = 'setup';
 
@@ -568,18 +568,23 @@ function checkTurn(game) {
   const isPlayer1 = game.player1_id === userId;
   
   // Pour cet exemple basique, le joueur 1 commence toujours
-  isMyTurn = isPlayer1;
+  window.isMyTurn = isPlayer1;
   
   const turnIndicator = document.getElementById('turn-indicator');
   if (turnIndicator) {
-    turnIndicator.textContent = isMyTurn ? "C'est votre tour" : "Tour de l'adversaire";
+    turnIndicator.textContent = window.isMyTurn ? "C'est votre tour" : "Tour de l'adversaire";
     turnIndicator.classList.remove('hidden');
   }
 }
 
 // Gérer un tir sur la grille adversaire
+// Gérer un tir sur la grille adversaire
 async function handleShotClick(event) {
-  if (gameStatus !== 'playing' || !isMyTurn) return;
+  // Remplacer 'playing' par 'in_progress'
+  console.log("Clic sur la grille adverse");
+  console.log("gameStatus:", gameStatus);
+  console.log("isMyTurn:", window.isMyTurn);
+  if (gameStatus !== 'in_progress' || !window.isMyTurn) return;
   
   const x = parseInt(event.target.dataset.x);
   const y = parseInt(event.target.dataset.y);
@@ -589,7 +594,7 @@ async function handleShotClick(event) {
     return;
   }
   
-  // Envoyer le tir via WebSocket au lieu de l'API REST
+  // Envoyer le tir via WebSocket
   if (typeof sendShot === 'function') {
     sendShot(x, y);
   } else {
@@ -600,8 +605,8 @@ async function handleShotClick(event) {
     }
   }
   
-  // Désactiver temporairement le tour du joueur jusqu'à réception de la réponse
-  isMyTurn = false;
+  // Désactiver temporairement le tour du joueur
+  window.isMyTurn = false;
   const turnIndicator = document.getElementById('turn-indicator');
   if (turnIndicator) {
     turnIndicator.textContent = "Tour de l'adversaire";
