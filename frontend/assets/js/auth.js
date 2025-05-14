@@ -1,6 +1,9 @@
-// Vérifier si l'utilisateur est connecté
 async function checkAuthentication() {
   try {
+    console.log("window.API_URL:", window.API_URL);
+    console.log("Type of window.API_URL:", typeof window.API_URL);
+    console.log("API_URL utilisé:", window.API_URL);
+    
     const response = await fetch(`${window.API_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include',
@@ -8,6 +11,7 @@ async function checkAuthentication() {
     });
 
     const data = await response.json();
+    console.log("Data reçue:", data);
 
     if (response.ok) {
       // L'utilisateur est connecté
@@ -18,11 +22,18 @@ async function checkAuthentication() {
       document.getElementById('logout-link')?.style.setProperty('display', 'block');
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
 
-      // Vérification du statut admin simplifiée
+      // Vérification du statut admin améliorée
       const adminLink = document.getElementById('admin-link');
       if (adminLink) {
         console.log('Admin link found, is_admin:', data.user?.is_admin);
-        adminLink.style.display = data.user?.is_admin ? 'block' : 'none';
+        // Force l'affichage si l'utilisateur est admin
+        if (data.user?.is_admin === true) {
+          adminLink.style.setProperty('display', 'block');
+          console.log('Admin link display set to block');
+        } else {
+          adminLink.style.setProperty('display', 'none');
+          console.log('Admin link display set to none');
+        }
       } else {
         console.log('Admin link not found in DOM');
       }
@@ -52,6 +63,7 @@ async function checkAuthentication() {
       return false;
     } 
   } catch (error) {
+    console.error("Erreur lors de la vérification d'authentification:", error);
     document.getElementById('login-link')?.style.setProperty('display', 'block');
     document.getElementById('register-link')?.style.setProperty('display', 'block');
     document.getElementById('profile-link')?.style.setProperty('display', 'none');

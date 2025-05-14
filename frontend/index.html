@@ -79,6 +79,20 @@
       }
     });
   </script>
-
+  <script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Vérifie d'abord si l'utilisateur est connecté via localStorage
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Si l'utilisateur est admin, afficher immédiatement le lien
+    if (user && user.is_admin === true) {
+      const adminLink = document.getElementById('admin-link');
+      if (adminLink) {
+        adminLink.style.display = 'block';
+        console.log('Lien admin activé par le script de correction');
+      }
+    }
+  });
+</script>
 </body>
 </html>

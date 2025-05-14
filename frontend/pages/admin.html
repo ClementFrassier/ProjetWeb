@@ -31,9 +31,35 @@
     h2 {
       margin-top: 30px;
     }
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #loading-message {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
   </style>
 </head>
 <body>
+  <!-- Overlay de vérification -->
+  <div id="loading-overlay">
+    <div id="loading-message">
+      <h3>Vérification des privilèges administrateur...</h3>
+      <p>Veuillez patienter...</p>
+    </div>
+  </div>
+
   <header>
     <h1>Bataille Navale - Administration</h1>
     <nav id="main-nav">
@@ -74,5 +100,55 @@
   <script src="../assets/js/config.js"></script>
   <script src="../assets/js/auth.js"></script>
   <script src="../assets/js/admin.js"></script>
+  <script>
+    // Script de vérification d'accès amélioré
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Première vérification rapide via localStorage
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!user || !user.is_admin) {
+        alert("Vous n'avez pas les droits d'administrateur pour accéder à cette page.");
+        window.location.href = "../index.html";
+        return;
+      }
+      
+      // Vérification côté serveur
+      try {
+        const response = await fetch(`${window.API_URL}/auth/check`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok || !data.authenticated) {
+          alert("Session expirée. Veuillez vous reconnecter.");
+          window.location.href = "login.html";
+          return;
+        }
+        
+        if (!data.user || !data.user.is_admin) {
+          alert("Vous n'avez pas les droits d'administrateur pour accéder à cette page.");
+          window.location.href = "../index.html";
+          return;
+        }
+        
+        // L'utilisateur est un administrateur authentifié
+        document.getElementById('loading-overlay').style.display = 'none';
+        loadGames(); // Charger les données
+        
+      } catch (error) {
+        console.error("Erreur de vérification:", error);
+        alert("Erreur de vérification des privilèges. Redirection...");
+        window.location.href = "../index.html";
+      }
+      
+      // Configurer la déconnexion
+      document.getElementById('logout-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        logout();
+      });
+    });
+  </script>
 </body>
 </html>
