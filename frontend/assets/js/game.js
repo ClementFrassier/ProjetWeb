@@ -307,6 +307,12 @@ async function playerReady() {
       }
     }
 
+    const readyResponse = await window.setPlayerReady(currentGameId);
+    
+    if (readyResponse?.error) {
+      throw new Error(`Erreur: ${readyResponse.error}`);
+    }
+
     const readyBtn = document.getElementById('ready-btn');
     if (readyBtn) readyBtn.disabled = true;
     
@@ -315,48 +321,50 @@ async function playerReady() {
       statusMessage.textContent = "Navires placés. Vérification de l'adversaire...";
     }
 
+    // Vérifie immédiatement si les deux joueurs sont prêts
+    await checkBothPlayersReady();
+    
+    // Puis continuer avec des vérifications périodiques
     const checkInterval = setInterval(async () => {
-      const response = await window.getGameDetails(currentGameId);
-      
-      if (!response?.game) return;
-      
-      const shipsResponse = await fetch(`${window.API_URL}/games/checkAllShipsPlaced?gameId=${currentGameId}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (shipsResponse.ok) {
-        const shipsData = await shipsResponse.json();
-        
-        if (shipsData.allShipsPlaced) {
-          const startResponse = await fetch(`${window.API_URL}/games/startGame`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ gameId: currentGameId })
-          });
-          
-          if (startResponse.ok) {
-            clearInterval(checkInterval);
-            gameStatus = 'in_progress';
-            
-            const opponentBoard = document.getElementById('opponent-board');
-            if (opponentBoard) {
-              opponentBoard.classList.remove('hidden');
-            }
-            
-            if (statusMessage) {
-              statusMessage.textContent = "La partie commence !";
-            }
-            
-            await checkGameStatus();
-          }
-        }
+      const isReady = await checkBothPlayersReady();
+      if (isReady) {
+        clearInterval(checkInterval);
       }
     }, 2000);
     
   } catch (error) {
     alert(`Erreur: ${error.message}`);
+  }
+}
+
+
+async function checkBothPlayersReady() {
+  if (!currentGameId) return false;
+  
+  try {
+    const readyResponse = await window.checkPlayersReady(currentGameId);
+    
+    if (readyResponse?.allReady && readyResponse?.gameStarted) {
+      gameStatus = 'in_progress';
+      
+      const opponentBoard = document.getElementById('opponent-board');
+      if (opponentBoard) {
+        opponentBoard.classList.remove('hidden');
+      }
+      
+      const statusMessage = document.getElementById('status-message');
+      if (statusMessage) {
+        statusMessage.textContent = "La partie commence !";
+      }
+      
+      await checkGameStatus();
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Erreur de vérification de l'état de préparation:", error);
+    return false;
   }
 }
 

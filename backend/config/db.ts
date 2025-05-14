@@ -1,12 +1,8 @@
-// config/db.ts
 import { DB } from "https://deno.land/x/sqlite/mod.ts";
 
-// Initialiser la base de données
 export const db = new DB("./battleship.db");
 
-// Fonction d'initialisation
 export const initDb = async () => {
-  // Créer les tables si elles n'existent pas
   db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -15,6 +11,7 @@ export const initDb = async () => {
       password_hash TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_login TIMESTAMP
+      admin BOOLEAN DEFAULT FALSE,
     );
     
     CREATE TABLE IF NOT EXISTS games (

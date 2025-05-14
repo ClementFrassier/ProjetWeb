@@ -211,7 +211,6 @@ button:disabled {
   color: green;
   font-weight: bold;
   font-size: 1.2em;
-  animation: pulse 1.5s infinite;
 }
 
 .defeat {

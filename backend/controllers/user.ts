@@ -43,7 +43,6 @@ export const getUserStats = async (ctx: Context) => {
     
     console.log("Données brutes des statistiques:", stats);
     
-    // Conversion du tableau de données en objet avec valeurs par défaut
     const statsData = {
       user_id: stats[0][0],
       games_played: stats[0][1] || 0,
@@ -73,7 +72,7 @@ export const getUserStats = async (ctx: Context) => {
 // Génère un classement des meilleurs joueurs basé sur les victoires et précision
 export const getLeaderboard = async (ctx: Context) => {
   try {
-    // Requête SQL complexe pour calculer et trier les statistiques des joueurs
+    // calculer et trier les statistiques des joueurs
     const leaderboard = await db.query(`
       SELECT 
         u.id, 

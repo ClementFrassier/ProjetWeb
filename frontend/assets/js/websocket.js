@@ -52,6 +52,19 @@ function handleWebSocketMessage(data) {
       if (turnIndicator) {
         turnIndicator.textContent = "C'est votre tour";
       }
+      if (window.gameStatus !== 'in_progress') {
+        window.gameStatus = 'in_progress';
+        const statusMessage = document.getElementById('status-message');
+        if (statusMessage) {
+          statusMessage.textContent = "Partie en cours";
+        }
+        
+        const opponentBoard = document.getElementById('opponent-board');
+        if (opponentBoard) {
+          opponentBoard.classList.remove('hidden');
+        }
+      }
+
       break;
       
     case 'game_over':

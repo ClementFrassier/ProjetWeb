@@ -513,7 +513,6 @@ export const setPlayerReady = async (ctx: Context) => {
 };
 
 // Vérifie si les deux joueurs sont prêts à commencer la partie
-// SUPPRIMER checkAllShipsPlaced et utiliser cette version améliorée de checkPlayersReady:
 export const checkPlayersReady = async (ctx: Context) => {
   try {
     const gameId = ctx.request.url.searchParams.get("gameId");
@@ -549,7 +548,6 @@ export const checkPlayersReady = async (ctx: Context) => {
       return;
     }
 
-    // Vérifier les navires des deux joueurs en une seule requête
     const shipsCount = await db.query(
       `SELECT user_id, COUNT(*) as count 
        FROM ships 
@@ -558,7 +556,6 @@ export const checkPlayersReady = async (ctx: Context) => {
       [gameId, player1Id, player2Id]
     );
     
-    // Créer un objet pour stocker le compte de navires par joueur
     const playerShips = {};
     shipsCount.forEach(row => {
       playerShips[row[0]] = row[1];
@@ -573,7 +570,7 @@ export const checkPlayersReady = async (ctx: Context) => {
       player1Ready,
       player2Ready,
       allReady,
-      allShipsPlaced: allReady, // Ajout de la propriété pour compatibilité
+      allShipsPlaced: allReady, 
       gameStarted: currentStatus === 'in_progress'
     };
   } catch (error) {
@@ -601,3 +598,36 @@ export const startGameManual = async (ctx: Context) => {
     ctx.response.body = { error: error.message };
   }
 };
+
+export const deletGame = async (ctx: Context) => {
+  try {
+    const body = await ctx.request.body.json();
+    const { gameId } = body;
+    
+    await db.query(
+      "DELETE * FROM games WHERE id = ?",
+      [gameId]
+    );
+    await db.query(
+      "DELETE * FROM shots WHERE id = ?",
+      [gameId]
+    );
+    await db.query(
+      "DELETE * FROM ships WHERE id = ?",
+      [gameId]
+    );
+
+
+    
+    ctx.response.status = 201;
+    ctx.response.body = { success: true, message: "Partie spprimé" };
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { error: error.message };
+  }
+};
+
+
+
+
+
