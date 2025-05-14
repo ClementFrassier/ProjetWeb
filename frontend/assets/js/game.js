@@ -4,7 +4,7 @@ let currentGameId = null;
 let currentOrientation = 'horizontal';
 let selectedShipType = null;
 let placedShips = [];
-let gameStatus = 'setup'; // 'setup', 'playing', 'finished'
+let gameStatus = 'setup'; 
 
 console.log("sendChatMessage dans game.js:", typeof sendChatMessage);
 console.log("window.sendChatMessage:", typeof window.sendChatMessage);
@@ -107,6 +107,7 @@ async function initializeGame() {
     console.error("Erreur d'initialisation:", error);
   }
 }
+
 // Fonction pour obtenir l'ID de partie depuis l'URL
 function getGameIdFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -580,8 +581,13 @@ function checkTurn(game) {
 // Gérer un tir sur la grille adversaire
 // Gérer un tir sur la grille adversaire
 async function handleShotClick(event) {
-  // Remplacer 'playing' par 'in_progress'
   console.log("Clic sur la grille adverse");
+  if (gameStatus !== 'in_progress' && gameStatus !== 'playing' || !window.isMyTurn) {
+    console.log("Clic ignoré - Partie non en cours ou ce n'est pas votre tour");
+    return;
+  }
+  
+
   console.log("gameStatus:", gameStatus);
   console.log("isMyTurn:", window.isMyTurn);
   if (gameStatus !== 'in_progress' || !window.isMyTurn) return;

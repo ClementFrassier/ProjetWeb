@@ -77,6 +77,7 @@ function handleWebSocketMessage(data) {
       console.log("GAME OVER reçu!", data);
       
       // Changer le statut du jeu
+      gameStatus = 'finished';
       window.gameStatus = 'finished';
       
       // Mettre à jour l'interface
