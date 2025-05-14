@@ -1,0 +1,170 @@
+/* Styles généraux */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f0f5f9;
+  color: #333;
+  line-height: 1.6;
+}
+
+header {
+  background-color: #1a3b8a;
+  color: white;
+  padding: 0.7rem;
+}
+
+h1, h2, h3 {
+  margin-top: 0;
+  color: #1a3b8a;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: white;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li {
+  margin-left: 1rem;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+nav ul li a:hover {
+  text-decoration: underline;
+}
+
+main {
+  padding: 1rem;
+  max-width: 1000px;
+  margin: 0 auto 60px; /* Espace pour le footer */
+}
+
+footer {
+  background-color: #1a3b8a;
+  color: white;
+  text-align: center;
+  padding: 0.5rem;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  font-size: 0.8rem;
+}
+
+/* Styles de la page d'accueil */
+.hero {
+  background-color: white;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: 5px;
+  text-align: center;
+  border: 1px solid #ccc;
+}
+
+.hero h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  margin-bottom: 1.5rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cta-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  text-decoration: none;
+  border-radius: 3px;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.primary-btn {
+  background-color: #1a3b8a;
+  color: white;
+  border: none;
+}
+
+.primary-btn:hover {
+  background-color: #2a4b9a;
+}
+
+.secondary-btn {
+  background-color: #e0e0e0;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.secondary-btn:hover {
+  background-color: #d0d0d0;
+}
+
+/* Règles du jeu */
+#rules {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.rules-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.rule {
+  flex: 1;
+  min-width: 250px;
+  padding: 1rem;
+  background-color: #f8f8f8;
+  border-radius: 3px;
+  border: 1px solid #e0e0e0;
+}
+
+.rule h3 {
+  border-bottom: 2px solid #a8d0ff;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.rule ul {
+  padding-left: 1.2rem;
+}
+
+.rule li {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rules-content {
+    flex-direction: column;
+  }
+  
+  .hero {
+    padding: 1.5rem 1rem;
+  }
+}
