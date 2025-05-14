@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bataille Navale - Profil</title>
+  <link rel="stylesheet" href="../assets/css/game.css">
+</head>
+<body>
+  <header>
+    <h1>Bataille Navale - Profil</h1>
+    <nav>
+      <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="game.html">Jouer</a></li>
+        <li><a href="lobby.html">Lobby</a></li>
+        <li><a href="#" id="logout-link">Déconnexion</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Profil du joueur</h2>
+    
+    <div>
+      <h3>Informations personnelles</h3>
+      <p>Nom d'utilisateur: <span id="username">Chargement...</span></p>
+      <p>Email: <span id="email">Chargement...</span></p>
+      <p>Membre depuis: <span id="created-at">Chargement...</span></p>
+      <p>Dernière connexion: <span id="last-login">Chargement...</span></p>
+    </div>
+    
+    <div>
+      <h3>Statistiques de jeu</h3>
+      <p>Parties jouées: <span id="games-played">-</span></p>
+      <p>Victoires: <span id="games-won">-</span></p>
+      <p>Taux de victoire: <span id="win-rate">-</span></p>
+      <p>Tirs effectués: <span id="total-shots">-</span></p>
+      <p>Tirs réussis: <span id="hits">-</span></p>
+      <p>Précision: <span id="accuracy">-</span></p>
+      <p>Navires coulés: <span id="ships-sunk">-</span></p>
+    </div>
+    
+    <div>
+      <h3>Classement global</h3>
+      <table border="1">
+        <thead>
+          <tr>
+            <th>Rang</th>
+            <th>Joueur</th>
+            <th>Parties</th>
+            <th>Victoires</th>
+            <th>Taux de victoire</th>
+            <th>Précision</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr>
+            <td colspan="6">Chargement du classement...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/profile.js"></script>
+</body>
+</html>

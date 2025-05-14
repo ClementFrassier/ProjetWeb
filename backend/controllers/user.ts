@@ -1,27 +1,22 @@
-// controllers/user.ts
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
 
-// Récupérer le profil de l'utilisateur connecté
+// Récupère les informations de profil de l'utilisateur connecté
 export const getProfile = async (ctx: Context) => {
   try {
-    // L'ID de l'utilisateur est stocké dans ctx.state.user par le middleware d'authentification
     const userId = ctx.state.user.id;
     
-    // Requête pour obtenir les informations de l'utilisateur sans le mot de passe
     const users = await db.query(
       "SELECT id, username, email, created_at, last_login FROM users WHERE id = ?",
       [userId]
     );
     
-    // Vérifier si l'utilisateur existe
     if (users.length === 0) {
       ctx.response.status = 404;
       ctx.response.body = { message: "Utilisateur non trouvé" };
       return;
     }
     
-    // Renvoyer les informations de l'utilisateur
     ctx.response.status = 200;
     ctx.response.body = { user: users[0] };
   } catch (error) {
@@ -30,14 +25,11 @@ export const getProfile = async (ctx: Context) => {
   }
 };
 
-
-
-// Récupérer les statistiques d'un utilisateur
+// Récupère et calcule les statistiques de jeu pour l'utilisateur connecté
 export const getUserStats = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
     
-    // Récupérer les statistiques
     const stats = await db.query(
       "SELECT * FROM stats WHERE user_id = ?",
       [userId]
@@ -49,26 +41,39 @@ export const getUserStats = async (ctx: Context) => {
       return;
     }
     
-    // Calculer le ratio de précision (hits / total_shots)
-    const accuracy = stats[0].total_shots > 0 
-      ? (stats[0].hits / stats[0].total_shots * 100).toFixed(2) 
+    console.log("Données brutes des statistiques:", stats);
+    
+    // Conversion du tableau de données en objet avec valeurs par défaut
+    const statsData = {
+      user_id: stats[0][0],
+      games_played: stats[0][1] || 0,
+      games_won: stats[0][2] || 0,
+      total_shots: stats[0][3] || 0,
+      hits: stats[0][4] || 0,
+      ships_sunk: stats[0][5] || 0
+    };
+    
+    // Calcul du pourcentage de précision des tirs
+    const accuracy = statsData.total_shots > 0 
+      ? (statsData.hits / statsData.total_shots * 100).toFixed(2) 
       : 0;
     
     ctx.response.status = 200;
     ctx.response.body = { 
-      ...stats[0],
+      ...statsData,
       accuracy: `${accuracy}%`
     };
   } catch (error) {
+    console.error("Erreur getUserStats:", error);
     ctx.response.status = 500;
     ctx.response.body = { message: "Erreur serveur", error: error.message };
   }
 };
 
-// Récupérer le classement des joueurs
+// Génère un classement des meilleurs joueurs basé sur les victoires et précision
 export const getLeaderboard = async (ctx: Context) => {
   try {
-    // Récupérer les meilleurs joueurs basés sur le nombre de victoires
+    // Requête SQL complexe pour calculer et trier les statistiques des joueurs
     const leaderboard = await db.query(`
       SELECT 
         u.id, 

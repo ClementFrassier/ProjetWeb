@@ -1,9 +1,9 @@
-// controllers/auth.ts
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { hashPassword, verifyPassword } from "../utils/hash.ts";
 import { createJWT } from "../utils/jwt.ts";
 import { db } from "../config/db.ts";
 
+// Fonction asynchrone pour l'enregistrement d'un nouvel utilisateur
 export const registerUser = async (ctx: Context) => {
   try {
     if (!ctx.request.hasBody) {
@@ -12,7 +12,6 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    // CORRECTION : Utiliser ctx.request.body.json() au lieu de ctx.request.body().value
     const body = await ctx.request.body.json();
     const { username, email, password } = body;
 
@@ -22,7 +21,6 @@ export const registerUser = async (ctx: Context) => {
       return;
     }
 
-    // Vérifier si l'utilisateur existe déjà
     const existingUsers = await db.query(
       "SELECT * FROM users WHERE username = ? OR email = ?",
       [username, email]
@@ -33,17 +31,15 @@ export const registerUser = async (ctx: Context) => {
       ctx.response.body = { message: "Nom d'utilisateur ou email déjà utilisé" };
       return;
     }
-
-    // Hasher le mot de passe
+    // Hachage du mot de passe pour sécuriser le stockage
     const hashedPassword = await hashPassword(password);
 
-    // Insérer l'utilisateur
     await db.query(
       "INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)",
       [username, email, hashedPassword]
     );
 
-    // Récupérer l'ID du nouvel utilisateur
+
     const newUser = await db.query(
       "SELECT id FROM users WHERE username = ?",
       [username]
@@ -65,6 +61,8 @@ export const registerUser = async (ctx: Context) => {
   }
 };
 
+
+//Fonction asynchrone pour authentifier un utilisateur
 export const loginUser = async (ctx: Context) => {
   try {
     if (!ctx.request.hasBody) {
@@ -72,8 +70,6 @@ export const loginUser = async (ctx: Context) => {
       ctx.response.body = { message: "Le corps de la requête est vide" };
       return;
     }
-
-    // CORRECTION : Utiliser ctx.request.body.json() au lieu de ctx.request.body().value
     const body = await ctx.request.body.json();
     const { username, password } = body;
 
@@ -120,10 +116,11 @@ export const loginUser = async (ctx: Context) => {
     console.log("Utilisateur ID:", user[0]);
     console.log("Utilisateur username:", user[1]);
 
+    //Création du JWT pour l'authentification
     const token = await createJWT({
       id: user[0],
       username: user[1],
-      exp: Math.floor(Date.now() / 1000) + 60 * 60, // expire dans 1 heure
+      exp: Math.floor(Date.now() / 1000) + 60 * 60, //expir en 1 heure
     });
 
     await db.execute(
@@ -134,10 +131,10 @@ export const loginUser = async (ctx: Context) => {
     // Configuration du cookie
     ctx.cookies.set("auth_token", token, {
       httpOnly: true,
-      secure: false, // false car on est en localhost
-      sameSite: "lax", // Important pour CORS
+      secure: false,
+      sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 1000, // 1 heure en millisecondes
+      maxAge: 60 * 60 * 1000, 
     });
 
     ctx.response.status = 200;
@@ -156,15 +153,16 @@ export const loginUser = async (ctx: Context) => {
   }
 };
 
+// Fonction pour déconnecter un utilisateur
 export const logoutUser = async (ctx: Context) => {
   try {
-    // Supprimer le cookie en le remplaçant par un cookie expiré
+    // Suppression du cookie d'authentification
     ctx.cookies.set("auth_token", "", {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
       path: "/",
-      expires: new Date(0), // Date dans le passé pour expirer le cookie
+      expires: new Date(0), 
     });
     
     ctx.response.status = 200;
@@ -176,6 +174,7 @@ export const logoutUser = async (ctx: Context) => {
   }
 };
 
+// Fonction pour vérifier l'authentification d'un utilisateur
 export const checkAuth = async (ctx: Context) => {
   try {
     const userId = ctx.state.user.id;
@@ -187,7 +186,7 @@ export const checkAuth = async (ctx: Context) => {
       return;
     }
 
-    // Conversion du tableau en objet
+
     const user = {
       id: users[0][0],
       username: users[0][1],

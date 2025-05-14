@@ -1,4 +1,3 @@
-// backend/utils/websocket.ts
 import { db } from "../config/db.ts";
 
 // Structure pour stocker les connexions websocket actives
@@ -71,7 +70,6 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
     return;
   }
 
-  // Enregistrer l'association utilisateur-partie
   userGames.set(userId.toString(), gameId);
 
   // Récupérer ou créer la connexion pour cette partie
@@ -81,7 +79,6 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
     gameConnections.set(gameId, gameConnection);
   }
 
-  // Déterminer si c'est player1 ou player2
   const gameInfo = await db.query(
     "SELECT player1_id, player2_id FROM games WHERE id = ?",
     [gameId]
@@ -105,10 +102,8 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
     }
   }
 
-  // Mettre à jour les connexions
   gameConnections.set(gameId, gameConnection);
 
-  // Afficher l'état actuel
   console.log("État actuel des connexions:", {
     gameId: gameId,
     player1: gameConnection.player1 ? "connecté" : "non connecté",
@@ -148,7 +143,7 @@ async function handleChat(socket: WebSocket, message: any, gameId: string) {
 }
 
 // Gérer un tir
-async function handleShot(socket: WebSocket, message: any, gameId: string) {
+async function handleShot(socket, message, gameId) {
   const { userId, x, y } = message;
   
   if (!userId || x === undefined || y === undefined) {
@@ -156,21 +151,86 @@ async function handleShot(socket: WebSocket, message: any, gameId: string) {
     return;
   }
 
-  // Ici, dans une implémentation complète, vous vérifieriez l'état du jeu
-  // et détermineriez si le tir a touché ou non
-  const hit = Math.random() > 0.5; // Pour l'exemple
-  const sunk = hit && Math.random() > 0.7; // Pour l'exemple
+  try {
+    // Déterminer l'autre joueur
+    const gameConnection = gameConnections.get(gameId);
+    if (!gameConnection) return;
 
-  // Déterminer l'autre joueur
-  const gameConnection = gameConnections.get(gameId);
-  if (!gameConnection) return;
+    const isPlayer1 = gameConnection.player1 === socket;
+    const otherPlayerSocket = isPlayer1 ? gameConnection.player2 : gameConnection.player1;
+    
+    const gameInfo = await db.query(
+      "SELECT player1_id, player2_id FROM games WHERE id = ?",
+      [gameId]
+    );
+    
+    if (gameInfo.length === 0) {
+      console.error("Partie introuvable");
+      return;
+    }
+    
+    const player1Id = gameInfo[0][0];
+    const player2Id = gameInfo[0][1];
+    const opponentId = isPlayer1 ? player2Id : player1Id;
+    
+    if (!opponentId) {
+      console.error("Adversaire introuvable");
+      return;
+    }
+    
+    // Vérifier si un navire est touché à cette position
+    const ships = await db.query(
+      `SELECT * FROM ships WHERE game_id = ? AND user_id = ? AND (
+        (orientation = 'horizontal' AND y_position = ? AND x_position <= ? AND x_position + size - 1 >= ?) OR
+        (orientation = 'vertical' AND x_position = ? AND y_position <= ? AND y_position + size - 1 >= ?)
+      )`,
+      [gameId, opponentId, y, x, x, x, y, y]
+    );
+    
+    let hit = false;
+    let shipId = null;
+    let sunk = false;
+    
+    if (ships.length > 0) {
+      hit = true;
+      shipId = ships[0][0];
+      
+      // Vérifier les tirs précédents sur ce navire
+      const hits = await db.query(
+        "SELECT COUNT(*) as hit_count FROM shots WHERE game_id = ? AND ship_id = ? AND is_hit = TRUE",
+        [gameId, shipId]
+      );
+      
+      // +1 pour inclure le tir actuel
+      const hitCount = hits[0][0] + 1;
+      
+      if (hitCount >= ships[0][7]) {
+        sunk = true;
+        
+        await db.query(
+          "UPDATE ships SET is_sunk = TRUE WHERE id = ?",
+          [shipId]
+        );
+        
+        await db.query(
+          "UPDATE stats SET ships_sunk = ships_sunk + 1 WHERE user_id = ?",
+          [userId]
+        );
+      }
+    }
+    
+    await db.query(
+      "INSERT INTO shots (game_id, user_id, x_position, y_position, is_hit, ship_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [gameId, userId, x, y, hit, shipId]
+    );
+    
+    await db.query(
+      "UPDATE stats SET total_shots = total_shots + 1, hits = hits + ? WHERE user_id = ?",
+      [hit ? 1 : 0, userId]
+    );
 
-  const isPlayer1 = gameConnection.player1 === socket;
-  const otherPlayerSocket = isPlayer1 ? gameConnection.player2 : gameConnection.player1;
-
-  // Informer l'autre joueur du tir
-  if (otherPlayerSocket) {
-    try {
+    // Informer l'autre joueur du tir
+    if (otherPlayerSocket && otherPlayerSocket.readyState === WebSocket.OPEN) {
       otherPlayerSocket.send(JSON.stringify({
         type: "shot",
         x: x,
@@ -178,13 +238,9 @@ async function handleShot(socket: WebSocket, message: any, gameId: string) {
         hit: hit,
         sunk: sunk
       }));
-    } catch (error) {
-      console.error("Erreur lors de l'envoi du résultat de tir:", error);
     }
-  }
 
-  // Informer le tireur du résultat
-  try {
+    // Informer le tireur du résultat
     socket.send(JSON.stringify({
       type: "shot_result",
       x: x,
@@ -193,18 +249,58 @@ async function handleShot(socket: WebSocket, message: any, gameId: string) {
       sunk: sunk
     }));
 
-    // C'est au tour de l'autre joueur maintenant
-    if (otherPlayerSocket) {
+    // Vérifier si tous les navires sont coulés
+    if (hit) {
+      const remainingShips = await db.query(
+        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ? AND is_sunk = FALSE",
+        [gameId, opponentId]
+      );
+      
+      console.log("Navires restants:", remainingShips[0][0]);
+      
+      if (remainingShips[0][0] === 0) {
+        console.log("PARTIE TERMINÉE - Victoire pour le joueur", userId);
+        
+        await db.query(
+          "UPDATE games SET status = 'finished', winner_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+          [userId, gameId]
+        );
+        
+        await db.query(
+          "UPDATE stats SET games_won = games_won + 1 WHERE user_id = ?",
+          [userId]
+        );
+        
+        await db.query(
+          "UPDATE stats SET games_played = games_played + 1 WHERE user_id IN (?, ?)",
+          [userId, opponentId]
+        );
+        
+        const gameOverMsg = {
+          type: "game_over",
+          winner: userId
+        };
+        
+        socket.send(JSON.stringify(gameOverMsg));
+        if (otherPlayerSocket && otherPlayerSocket.readyState === WebSocket.OPEN) {
+          otherPlayerSocket.send(JSON.stringify(gameOverMsg));
+        }
+        
+        return;
+      }
+    }
+
+    if (otherPlayerSocket && otherPlayerSocket.readyState === WebSocket.OPEN) {
       otherPlayerSocket.send(JSON.stringify({
         type: "your_turn"
       }));
     }
+    
   } catch (error) {
-    console.error("Erreur lors de l'envoi du résultat au tireur:", error);
+    console.error("Erreur lors du traitement du tir:", error);
   }
 }
-
-// Fonction utilitaire pour diffuser un message à tous les joueurs d'une partie
+// Fonction pour diffuser un message à tous les joueurs d'une partie
 function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket) {
   const gameConnection = gameConnections.get(gameId);
   console.log(`Broadcasting to game ${gameId}:`, message);
@@ -223,7 +319,7 @@ function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket
       gameConnection.player1.send(jsonMessage);
     } catch (error) {
       console.error("Erreur d'envoi au joueur 1:", error);
-      gameConnection.player1 = undefined; // Nettoyer la connexion défaillante
+      gameConnection.player1 = undefined; 
     }
   }
 
@@ -251,7 +347,6 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
       gameConnection.player1 = undefined;
       console.log("Player1 déconnecté de la partie", gameId);
       
-      // Trouver l'userId correspondant
       for (const [userId, gId] of userGames.entries()) {
         if (gId === gameId) {
           const gameInfo = await db.query(
@@ -268,7 +363,6 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
       gameConnection.player2 = undefined;
       console.log("Player2 déconnecté de la partie", gameId);
       
-      // Trouver l'userId correspondant
       for (const [userId, gId] of userGames.entries()) {
         if (gId === gameId) {
           const gameInfo = await db.query(

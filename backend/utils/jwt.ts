@@ -1,9 +1,8 @@
 import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
-// Utiliser une clé secrète fixe (à stocker dans une variable d'environnement en production)
-const SECRET_KEY = "votre_clé_secrète_très_longue_et_aléatoire";
+const SECRET_KEY = "12345";
 
-// Convertir la chaîne en clé utilisable par l'API crypto
+// Convertir la chaîne en clé utilisable par l'API 
 const encoder = new TextEncoder();
 const keyData = encoder.encode(SECRET_KEY);
 const secretKey = await crypto.subtle.importKey(

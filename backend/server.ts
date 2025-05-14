@@ -1,4 +1,3 @@
-// server.ts
 import { Application } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { router as authRouter } from "./routes/auth.ts";
 import { router as gameRouter } from "./routes/game.ts";
@@ -12,15 +11,11 @@ import { handleWebSocket } from "./utils/websocket.ts";
 const app = new Application();
 const PORT = 3000;
 
-// Middleware CORS AVANT tout autre middleware
 app.use(corsMiddleware);
 
-// Middleware pour les erreurs
 app.use(errorMiddleware);
 
-// Middleware pour précharger le corps des requêtes
 app.use(async (ctx, next) => {
-  // Vérifier si c'est une route WebSocket pour le jeu
   if (ctx.request.url.pathname.startsWith("/ws/game/")) {
     const upgrade = ctx.request.headers.get("upgrade");
     if (upgrade && upgrade.toLowerCase() === "websocket") {
@@ -28,16 +23,13 @@ app.use(async (ctx, next) => {
       console.log("Connexion WebSocket pour la partie:", gameId);
       
       const socket = ctx.upgrade();
-      
-      // Déléguer la gestion au handler WebSocket
-      handleWebSocket(socket, gameId);
+            handleWebSocket(socket, gameId);
       return;
     }
   }
   
   await next();
 });
-// Routes
 app.use(authRouter.routes());
 app.use(authRouter.allowedMethods());
 app.use(gameRouter.routes());
@@ -57,7 +49,6 @@ app.use(async (ctx, next) => {
     };
     socket.onmessage = (e) => {
       console.log("Received:", e.data);
-      // Traitement des messages WebSocket
     };
     socket.onclose = () => {
       console.log("WebSocket connection closed");

@@ -32,6 +32,7 @@ function safeAddChatMessage(message) {
 }
 
 // Fonction pour gérer les messages reçus via WebSocket
+// Fonction pour gérer les messages reçus via WebSocket - version complète modifiée
 function handleWebSocketMessage(data) {
   console.log("Message WebSocket reçu:", data);
 
@@ -73,17 +74,60 @@ function handleWebSocketMessage(data) {
       
     case 'game_over':
       // Fin de partie
+      console.log("GAME OVER reçu!", data);
+      
+      // Changer le statut du jeu
+      window.gameStatus = 'finished';
+      
+      // Mettre à jour l'interface
       const statusMessage = document.getElementById('status-message');
+      const turnIndicator2 = document.getElementById('turn-indicator');
+      
       if (statusMessage) {
-        statusMessage.textContent = `Partie terminée! ${data.winner === userId ? 'Vous avez gagné!' : 'Vous avez perdu!'}`;
+        const isWinner = data.winner == userId;
+        statusMessage.textContent = isWinner 
+          ? "VICTOIRE! Tous les navires ennemis sont coulés!" 
+          : "DÉFAITE! Tous vos navires ont été coulés!";
+        statusMessage.className = isWinner ? 'victory' : 'defeat';
       }
-      if (typeof window.gameStatus !== 'undefined') {
-        window.gameStatus = 'finished';
+      
+      if (turnIndicator2) {
+        turnIndicator2.textContent = "Partie terminée";
       }
+      
+      // Désactiver les clics sur la grille
+      const opponentCells = document.querySelectorAll('#opponent-board .cell');
+      opponentCells.forEach(cell => {
+        cell.style.cursor = 'default';
+      });
+      
+      // Afficher un bouton pour retourner au lobby
+      const gameContainer = document.getElementById('game-container');
+      if (gameContainer) {
+        // Vérifier si le bouton existe déjà pour éviter les doublons
+        if (!document.querySelector('.back-button')) {
+          const backButton = document.createElement('button');
+          backButton.textContent = "Retour au lobby";
+          backButton.className = 'back-button';
+          backButton.onclick = function() { window.location.href = 'lobby.html'; };
+          gameContainer.appendChild(backButton);
+        }
+      }
+      
+      // Ajouter un message dans le chat
+      safeAddChatMessage(">>> Partie terminée <<<");
+      break;
+      
+    case 'player_disconnected':
+      // Un joueur s'est déconnecté
+      safeAddChatMessage(`${data.message || 'Un joueur s\'est déconnecté'}`);
+      break;
+      
+    default:
+      console.log(`Message de type inconnu: ${data.type}`);
       break;
   }
 }
-
 // Fonction pour initialiser la connexion WebSocket
 function initWebSocket(currentGameId) {
   // Vérifier si déjà connecté

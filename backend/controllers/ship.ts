@@ -1,6 +1,7 @@
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
 
+// Place un nouveau navire sur la grille de jeu
 export const placeShip = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
@@ -25,6 +26,7 @@ export const placeShip = async (ctx: Context) => {
             return;
         }
 
+        // Détermination de la taille du navire selon son type
         let size: number;
         switch (type) {
             case "carrier":
@@ -48,13 +50,12 @@ export const placeShip = async (ctx: Context) => {
                 return;
         }
 
-        // Insérer le bateau dans la base de données
         await db.query(
             "INSERT INTO ships (game_id, user_id, type, x_position, y_position, orientation, size) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [gameId, userId, type, x_position, y_position, orientation, size]
         );
 
-        ctx.response.status = 201; // Created
+        ctx.response.status = 201;
         ctx.response.body = { message: "Bateau placé avec succès" };
     } catch (error) {
         ctx.response.status = 500;
@@ -62,6 +63,7 @@ export const placeShip = async (ctx: Context) => {
     }
 };
 
+// Récupère tous les navires d'un joueur pour une partie donnée
 export const getPlayerShips = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
@@ -86,6 +88,7 @@ export const getPlayerShips = async (ctx: Context) => {
     }
 };
 
+// Vérifie si un placement de navire est valide (position, orientation et absence de chevauchement)
 export const validateShipPlacement = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
@@ -137,11 +140,11 @@ export const validateShipPlacement = async (ctx: Context) => {
         let i = 0;
         let positionValide = true;
 
+        // Vérification complexe des chevauchements avec les navires existants
         while (i < ships.length && positionValide === true) {
             const ship = ships[i];
-            // Vérification de chevauchement avec d'autres navires
             if (orientation === 'horizontal') {
-                // Vérifier si les navires horizontaux se chevauchent
+                // Cas 1: Navire horizontal chevauchant un autre navire horizontal
                 if (ship[6] === 'horizontal' && 
                     y_position === ship[5] &&
                     ((x_position >= ship[4] && x_position < ship[4] + ship[7]) ||
@@ -149,14 +152,14 @@ export const validateShipPlacement = async (ctx: Context) => {
                      (x_position <= ship[4] && x_position + size > ship[4] + ship[7]))) {
                     positionValide = false;
                 }
-                // Vérifier si un navire horizontal croise un navire vertical
+                // Cas 2: Navire horizontal croisant un navire vertical
                 if (ship[6] === 'vertical' &&
                     x_position <= ship[4] && x_position + size > ship[4] &&
                     y_position >= ship[5] && y_position < ship[5] + ship[7]) {
                     positionValide = false;
                 }
             } else {
-                // Vérifier si les navires verticaux se chevauchent
+                // Cas 3: Navire vertical chevauchant un autre navire vertical
                 if (ship[6] === 'vertical' && 
                     x_position === ship[4] &&
                     ((y_position >= ship[5] && y_position < ship[5] + ship[7]) ||
@@ -164,7 +167,7 @@ export const validateShipPlacement = async (ctx: Context) => {
                      (y_position <= ship[5] && y_position + size > ship[5] + ship[7]))) {
                     positionValide = false;
                 }
-                // Vérifier si un navire vertical croise un navire horizontal
+                // Cas 4: Navire vertical croisant un navire horizontal
                 if (ship[6] === 'horizontal' &&
                     y_position <= ship[5] && y_position + size > ship[5] &&
                     x_position >= ship[4] && x_position < ship[4] + ship[7]) {
@@ -189,6 +192,7 @@ export const validateShipPlacement = async (ctx: Context) => {
     }
 };
 
+// Récupère l'état actuel des navires d'un joueur (coulés ou non)
 export const checkShipStatus = async (ctx: Context) => {
     try {
         const userId = ctx.state.user.id;
@@ -212,7 +216,7 @@ export const checkShipStatus = async (ctx: Context) => {
             return;
         }
 
-        // Convertir les tableaux en objets pour une meilleure lisibilité
+        // Conversion des données brutes en objets structurés
         const formattedShips = shipsStatus.map(ship => ({
             id: ship[0],
             is_sunk: ship[1],
