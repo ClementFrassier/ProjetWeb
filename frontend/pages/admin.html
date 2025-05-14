@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bataille Navale - Administration</title>
+  <link rel="stylesheet" href="../assets/css/game.css">
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .delete-btn {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    h2 {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Bataille Navale - Administration</h1>
+    <nav id="main-nav">
+      <ul>
+        <li><a href="../index.html">Accueil</a></li>
+        <li><a href="profile.html">Profil</a></li>
+        <li><a href="lobby.html">Lobby</a></li>
+        <li><a href="#" id="logout-link">Déconnexion</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <h2>Panneau d'administration</h2>
+    
+    <h3>Liste des parties</h3>
+    <table id="games-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Joueur 1</th>
+          <th>Joueur 2</th>
+          <th>Statut</th>
+          <th>Date de création</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Les parties seront ajoutées ici -->
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Bataille Navale - Projet Web</p>
+  </footer>
+
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script src="../assets/js/admin.js"></script>
+</body>
+</html>

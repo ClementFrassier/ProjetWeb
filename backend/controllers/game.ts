@@ -599,35 +599,6 @@ export const startGameManual = async (ctx: Context) => {
   }
 };
 
-export const deletGame = async (ctx: Context) => {
-  try {
-    const body = await ctx.request.body.json();
-    const { gameId } = body;
-    
-    await db.query(
-      "DELETE * FROM games WHERE id = ?",
-      [gameId]
-    );
-    await db.query(
-      "DELETE * FROM shots WHERE id = ?",
-      [gameId]
-    );
-    await db.query(
-      "DELETE * FROM ships WHERE id = ?",
-      [gameId]
-    );
-
-
-    
-    ctx.response.status = 201;
-    ctx.response.body = { success: true, message: "Partie spprimé" };
-  } catch (error) {
-    ctx.response.status = 500;
-    ctx.response.body = { error: error.message };
-  }
-};
-
-
 
 
 

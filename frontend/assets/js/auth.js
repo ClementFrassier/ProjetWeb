@@ -17,7 +17,15 @@ async function checkAuthentication() {
       document.getElementById('game-link')?.style.setProperty('display', 'block');
       document.getElementById('logout-link')?.style.setProperty('display', 'block');
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
-      
+
+      const adminLink = document.getElementById('admin-link');
+      if (adminLink && data.user && data.user.is_admin) {
+        adminLink.style.setProperty('display', 'block');
+      }else if (adminLink) {
+        adminLink.style.setProperty('display', 'none');
+      }
+
+
       localStorage.setItem('user', JSON.stringify(data.user));
       
       const startBtn = document.getElementById('start-btn');
@@ -27,7 +35,7 @@ async function checkAuthentication() {
       }
       
       return true;
-    } else {
+    } else {  
       // L'utilisateur n'est pas connecté
       document.getElementById('login-link')?.style.setProperty('display', 'block');
       document.getElementById('register-link')?.style.setProperty('display', 'block');

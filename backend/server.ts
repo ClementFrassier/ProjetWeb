@@ -4,9 +4,10 @@ import { router as gameRouter } from "./routes/game.ts";
 import { router as userRouter } from "./routes/user.ts";
 import { router as shipRouter } from "./routes/ship.ts";
 import { errorMiddleware } from "./middleware/error.ts";
-import { corsMiddleware } from "./middleware/cors.ts";
-import { initDb } from "./config/db.ts";
+import { corsMiddleware  } from "./middleware/cors.ts";
+import { initDb,createDefaultAdmins } from "./config/db.ts";
 import { handleWebSocket } from "./utils/websocket.ts";
+import { router as adminRouter } from "./routes/admin.ts";
 
 const app = new Application();
 const PORT = 3000;
@@ -38,7 +39,8 @@ app.use(userRouter.routes());
 app.use(userRouter.allowedMethods());
 app.use(shipRouter.routes());
 app.use(shipRouter.allowedMethods());
-
+app.use(adminRouter.routes());
+app.use(adminRouter.allowedMethods());
 // WebSocket setup
 app.use(async (ctx, next) => {  
   const upgrade = ctx.request.headers.get("upgrade");
@@ -65,6 +67,7 @@ app.use((ctx) => {
 });
 
 await initDb();
+await createDefaultAdmins();
 
 console.log(`Server running on http://localhost:${PORT}`);
 await app.listen({ port: PORT });

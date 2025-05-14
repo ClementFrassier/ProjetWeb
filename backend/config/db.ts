@@ -9,9 +9,9 @@ export const initDb = async () => {
       username TEXT NOT NULL UNIQUE,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      is_admin BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_login TIMESTAMP
-      admin BOOLEAN DEFAULT FALSE,
     );
     
     CREATE TABLE IF NOT EXISTS games (
@@ -59,4 +59,57 @@ export const initDb = async () => {
   `);
   
   console.log("Base de données initialisée");
+};
+
+
+
+export const createDefaultAdmins = async () => {
+  try {
+
+    const existingAdmins = await db.query(
+      "SELECT COUNT(*) FROM users WHERE is_admin = TRUE"
+    );
+    
+    const adminCount = existingAdmins[0][0];
+    
+    if (adminCount === 0) {
+      const { hashPassword } = await import("../utils/hash.ts");
+      
+
+      const adminUsers = [
+        {
+          username: "admin",
+          email: "admin@admin",
+          password: "admin" 
+        }
+        //On peut creer d'autre admin
+      ];
+      
+      for (const admin of adminUsers) {
+        const hashedPassword = await hashPassword(admin.password);
+        await db.query(
+          "INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, TRUE)",
+          [admin.username, admin.email, hashedPassword]
+        );
+        
+        const newUser = await db.query(
+          "SELECT id FROM users WHERE username = ?",
+          [admin.username]
+        );
+        
+        if (newUser.length > 0) {
+          await db.query(
+            "INSERT INTO stats (user_id) VALUES (?)",
+            [newUser[0][0]]
+          );
+        }
+        
+        console.log(`Administrateur créé: ${admin.username}`);
+      }
+    } else {
+      console.log("Erreur administrateur deja existant.");
+    }
+  } catch (error) {
+    console.error("Erreur lors de la création des administrateurs:", error);
+  }
 };

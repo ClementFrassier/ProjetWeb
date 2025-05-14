@@ -120,6 +120,7 @@ export const loginUser = async (ctx: Context) => {
     const token = await createJWT({
       id: user[0],
       username: user[1],
+      is_admin: user[4] === 1 || user[4] === true,
       exp: Math.floor(Date.now() / 1000) + 60 * 60, //expir en 1 heure
     });
 
@@ -144,6 +145,7 @@ export const loginUser = async (ctx: Context) => {
         id: user[0],
         username: user[1],
         email: user[2],
+        is_admin: user[4] === 1 || user[4] === true
       }
     };
   } catch (error) {
@@ -190,7 +192,9 @@ export const checkAuth = async (ctx: Context) => {
     const user = {
       id: users[0][0],
       username: users[0][1],
-      email: users[0][2]
+      email: users[0][2],
+      is_admin: users[0][3] === 1 || users[0][3] === true
+
     };
 
     ctx.response.status = 200;
