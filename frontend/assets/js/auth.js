@@ -19,11 +19,18 @@ async function checkAuthentication() {
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
 
       const adminLink = document.getElementById('admin-link');
-      if (adminLink && data.user && data.user.is_admin) {
-        adminLink.style.setProperty('display', 'block');
-      }else if (adminLink) {
+      if (adminLink && data.user) {
+        console.log("User data:", data.user); 
+        // Vérifiez toutes les formes possibles de is_admin (booléen, nombre 1, string "true")
+        if (data.user.is_admin === true || data.user.is_admin === 1 || data.user.is_admin === "1" || data.user.is_admin === "true") {
+            adminLink.style.setProperty('display', 'block');
+        } else {
+            adminLink.style.setProperty('display', 'none');
+        }
+      } else if (adminLink) {
         adminLink.style.setProperty('display', 'none');
       }
+
 
 
       localStorage.setItem('user', JSON.stringify(data.user));
