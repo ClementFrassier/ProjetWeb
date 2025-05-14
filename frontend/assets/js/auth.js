@@ -18,26 +18,14 @@ async function checkAuthentication() {
       document.getElementById('logout-link')?.style.setProperty('display', 'block');
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
 
+      // Vérification du statut admin simplifiée
       const adminLink = document.getElementById('admin-link');
-  if (adminLink) {
-    console.log("Element adminLink trouvé:", adminLink);
-    console.log("data.user.is_admin:", data.user.is_admin);
-    
-    if (data.user && data.user.is_admin === true) {
-      console.log("Montrer le lien d'administration");
-      adminLink.style.setProperty('display', 'block');
-    } else {
-      console.log("Cacher le lien d'administration");
-      adminLink.style.setProperty('display', 'none');
-    }
-  } else {
-    console.log("Element admin-link non trouvé!");
-  }
-}
-
-
-
-
+      if (adminLink) {
+        console.log('Admin link found, is_admin:', data.user?.is_admin);
+        adminLink.style.display = data.user?.is_admin ? 'block' : 'none';
+      } else {
+        console.log('Admin link not found in DOM');
+      }
 
       localStorage.setItem('user', JSON.stringify(data.user));
       
@@ -47,6 +35,7 @@ async function checkAuthentication() {
         startBtn.href = 'pages/game.html';
       }
       
+      console.log("L'utilisateur est authentifié !");
       return true;
     } else {  
       // L'utilisateur n'est pas connecté
@@ -55,6 +44,8 @@ async function checkAuthentication() {
       document.getElementById('profile-link')?.style.setProperty('display', 'none');
       document.getElementById('game-link')?.style.setProperty('display', 'none');
       document.getElementById('logout-link')?.style.setProperty('display', 'none');
+      document.getElementById('admin-link')?.style.setProperty('display', 'none');
+      document.getElementById('lobby-link')?.style.setProperty('display', 'none');
       
       localStorage.removeItem('user');
       
@@ -66,6 +57,8 @@ async function checkAuthentication() {
     document.getElementById('profile-link')?.style.setProperty('display', 'none');
     document.getElementById('game-link')?.style.setProperty('display', 'none');
     document.getElementById('logout-link')?.style.setProperty('display', 'none');
+    document.getElementById('admin-link')?.style.setProperty('display', 'none');
+    document.getElementById('lobby-link')?.style.setProperty('display', 'none');
     
     localStorage.removeItem('user');
     return false;
