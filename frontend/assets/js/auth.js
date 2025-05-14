@@ -19,17 +19,23 @@ async function checkAuthentication() {
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
 
       const adminLink = document.getElementById('admin-link');
-      if (adminLink && data.user) {
-        console.log("User data:", data.user); 
-        // Vérifiez toutes les formes possibles de is_admin (booléen, nombre 1, string "true")
-        if (data.user.is_admin === true || data.user.is_admin === 1 || data.user.is_admin === "1" || data.user.is_admin === "true") {
-            adminLink.style.setProperty('display', 'block');
-        } else {
-            adminLink.style.setProperty('display', 'none');
-        }
-      } else if (adminLink) {
-        adminLink.style.setProperty('display', 'none');
-      }
+  if (adminLink) {
+    console.log("Element adminLink trouvé:", adminLink);
+    console.log("data.user.is_admin:", data.user.is_admin);
+    
+    if (data.user && data.user.is_admin === true) {
+      console.log("Montrer le lien d'administration");
+      adminLink.style.setProperty('display', 'block');
+    } else {
+      console.log("Cacher le lien d'administration");
+      adminLink.style.setProperty('display', 'none');
+    }
+  } else {
+    console.log("Element admin-link non trouvé!");
+  }
+}
+
+
 
 
 
