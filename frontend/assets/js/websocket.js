@@ -127,7 +127,7 @@ function initWebSocket(currentGameId) {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsHost = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
   const wsUrl = `${wsProtocol}//${wsHost}:3000/ws/game/${gameId}`;
-  
+    
   socket = new WebSocket(wsUrl);
   
   socket.onopen = () => {

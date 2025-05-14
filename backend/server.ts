@@ -8,6 +8,8 @@ import { corsMiddleware  } from "./middleware/cors.ts";
 import { initDb,createDefaultAdmins } from "./config/db.ts";
 import { handleWebSocket } from "./utils/websocket.ts";
 import { router as adminRouter } from "./routes/admin.ts";
+import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
+import { serveDir } from "https://deno.land/std@0.200.0/http/file_server.ts";
 
 const app = new Application();
 const PORT = 3000;
@@ -60,7 +62,6 @@ app.use(async (ctx, next) => {
   }
 });
 
-// 404 handler
 app.use((ctx) => {
   ctx.response.status = 404;
   ctx.response.body = { message: "Route not found" };
@@ -69,5 +70,16 @@ app.use((ctx) => {
 await initDb();
 await createDefaultAdmins();
 
-console.log(`Server running on http://localhost:${PORT}`);
-await app.listen({ port: PORT });
+
+
+const cert = await Deno.readTextFile("../certs/cert.pem");
+const key = await Deno.readTextFile("../certs/key.pem");
+
+await app.listen({
+  port: PORT,
+  secure: true,
+  cert: cert,
+  key: key
+});
+
+console.log(`Secure server running on https://localhost:${PORT}`);

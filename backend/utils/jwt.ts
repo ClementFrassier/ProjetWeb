@@ -1,6 +1,17 @@
 import { create, verify } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
-const SECRET_KEY = "12345";
+function generateSecureRandomKey(length = 32): string {
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
+  
+  return btoa(String.fromCharCode(...randomBytes));
+}
+
+
+
+const SECRET_KEY = Deno.env.get("JWT_SECRET_KEY") || generateSecureRandomKey();
+
+
 
 // Convertir la chaîne en clé utilisable par l'API 
 const encoder = new TextEncoder();
