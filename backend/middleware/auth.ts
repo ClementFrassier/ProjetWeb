@@ -3,14 +3,8 @@ import { verifyJWT } from "../utils/jwt.ts";
 
 export const authMiddleware = async (ctx: Context, next: () => Promise<void>) => {
   try {
-    // Debug: afficher toutes les headers
-    console.log("Auth middleware - URL:", ctx.request.url.pathname);
-    console.log("Auth middleware - Cookies header:", ctx.request.headers.get("cookie"));
-    
-    // Récupérer le token depuis les cookies
     const token = await ctx.cookies.get("auth_token");
     
-    console.log("Auth middleware - cookie token extrait:", token);
     
     if (!token) {
       console.log("Auth middleware - Aucun token trouvé");
@@ -20,7 +14,6 @@ export const authMiddleware = async (ctx: Context, next: () => Promise<void>) =>
     }
 
     const payload = await verifyJWT(token);
-    console.log("Auth middleware - payload JWT:", payload);
     
     if (!payload || !payload.id) {
       console.log("Auth middleware - Token invalide");

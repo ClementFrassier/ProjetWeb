@@ -90,106 +90,87 @@ export const getPlayerShips = async (ctx: Context) => {
 
 // Vérifie si un placement de navire est valide (position, orientation et absence de chevauchement)
 export const validateShipPlacement = async (ctx: Context) => {
-    try {
-        const userId = ctx.state.user.id;
-        const body = await ctx.request.body.json(); 
+  try {
+    const userId = ctx.state.user.id;
+    const body = await ctx.request.body.json(); 
+    const { gameId, x_position, y_position, orientation, size } = body;
 
-        const { gameId, x_position, y_position, orientation, size } = body;
+    // Vérifications de base
+    if (!gameId || x_position === undefined || y_position === undefined || 
+        orientation === undefined || size === undefined) {
+      ctx.response.status = 400;
+      ctx.response.body = { message: "Informations du bateau requise" };
+      return;
+    }
 
-        if (!gameId) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "ID de partie requis" };
-            return;
-        }
-      
-        if (x_position === undefined || y_position === undefined || orientation === undefined || size === undefined) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "Informations du bateau requise" };
-            return;
-        }
+    // Vérification des limites de la grille
+    if (x_position < 0 || y_position < 0 || x_position > 9 || y_position > 9) {
+      ctx.response.status = 400;
+      ctx.response.body = { message: "Position hors de la grille" };
+      return;
+    }
 
-        if (x_position < 0 || y_position < 0 || x_position > 9 || y_position > 9) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "Position hors de la grille" };
-            return;
-        }
+    // Vérification si le navire dépasse de la grille
+    if ((orientation === 'horizontal' && x_position + size > 10) || 
+        (orientation === 'vertical' && y_position + size > 10)) {
+      ctx.response.status = 400;
+      ctx.response.body = { message: "Le bateau dépasse de la grille" };
+      return;
+    }
 
-        if (orientation === 'horizontal' && x_position + size > 10) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "Le bateau dépasse de la grille" };
-            return;
-        }
+    // Création de toutes les positions occupées par le navire
+    const shipPositions = [];
+    for (let i = 0; i < size; i++) {
+      const pos = {
+        x: orientation === 'horizontal' ? x_position + i : x_position,
+        y: orientation === 'vertical' ? y_position + i : y_position
+      };
+      shipPositions.push(pos);
+    }
 
-        if (orientation === 'vertical' && y_position + size > 10) {
-            ctx.response.status = 400;
-            ctx.response.body = { message: "Le bateau dépasse de la grille" };
-            return;
-        }
+    // Récupérer tous les navires existants
+    const ships = await db.query(
+      "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
+      [gameId, userId]
+    );
 
-        const ships = await db.query(
-            "SELECT * FROM ships WHERE game_id = ? AND user_id = ?",
-            [gameId, userId]
-        );
+    // Vérifier les chevauchements
+    for (const ship of ships) {
+      const shipType = ship[3];
+      const shipX = ship[4];
+      const shipY = ship[5];
+      const shipOrientation = ship[6];
+      const shipSize = ship[7];
 
-        if (ships.length === 0) {
-            ctx.response.status = 200;
-            ctx.response.body = { message: "Position du bateau valide" };
-            return;
-        }
+      // Créer toutes les positions occupées par ce navire existant
+      const existingPositions = [];
+      for (let i = 0; i < shipSize; i++) {
+        const pos = {
+          x: shipOrientation === 'horizontal' ? shipX + i : shipX,
+          y: shipOrientation === 'vertical' ? shipY + i : shipY
+        };
+        existingPositions.push(pos);
+      }
 
-        let i = 0;
-        let positionValide = true;
-
-        // Vérification complexe des chevauchements avec les navires existants
-        while (i < ships.length && positionValide === true) {
-            const ship = ships[i];
-            if (orientation === 'horizontal') {
-                // Cas 1: Navire horizontal chevauchant un autre navire horizontal
-                if (ship[6] === 'horizontal' && 
-                    y_position === ship[5] &&
-                    ((x_position >= ship[4] && x_position < ship[4] + ship[7]) ||
-                     (x_position + size > ship[4] && x_position + size <= ship[4] + ship[7]) ||
-                     (x_position <= ship[4] && x_position + size > ship[4] + ship[7]))) {
-                    positionValide = false;
-                }
-                // Cas 2: Navire horizontal croisant un navire vertical
-                if (ship[6] === 'vertical' &&
-                    x_position <= ship[4] && x_position + size > ship[4] &&
-                    y_position >= ship[5] && y_position < ship[5] + ship[7]) {
-                    positionValide = false;
-                }
-            } else {
-                // Cas 3: Navire vertical chevauchant un autre navire vertical
-                if (ship[6] === 'vertical' && 
-                    x_position === ship[4] &&
-                    ((y_position >= ship[5] && y_position < ship[5] + ship[7]) ||
-                     (y_position + size > ship[5] && y_position + size <= ship[5] + ship[7]) ||
-                     (y_position <= ship[5] && y_position + size > ship[5] + ship[7]))) {
-                    positionValide = false;
-                }
-                // Cas 4: Navire vertical croisant un navire horizontal
-                if (ship[6] === 'horizontal' &&
-                    y_position <= ship[5] && y_position + size > ship[5] &&
-                    x_position >= ship[4] && x_position < ship[4] + ship[7]) {
-                    positionValide = false;
-                }
-            }
-            i++;
-        }
-
-        if (!positionValide) {
+      // Vérifier s'il y a chevauchement
+      for (const newPos of shipPositions) {
+        for (const existingPos of existingPositions) {
+          if (newPos.x === existingPos.x && newPos.y === existingPos.y) {
             ctx.response.status = 400;
             ctx.response.body = { message: "Bateau sur un autre bateau" };
             return;
+          }
         }
-        
-        ctx.response.status = 200;
-        ctx.response.body = { message: "Position du bateau valide" };
-
-    } catch (error) {
-        ctx.response.status = 500;
-        ctx.response.body = { message: "Erreur serveur", error: error.message };
+      }
     }
+    
+    ctx.response.status = 200;
+    ctx.response.body = { message: "Position du bateau valide" };
+
+  } catch (error) {
+    ctx.response.status = 500;
+    ctx.response.body = { message: "Erreur serveur", error: error.message };
+  }
 };
 
 // Récupère l'état actuel des navires d'un joueur (coulés ou non)

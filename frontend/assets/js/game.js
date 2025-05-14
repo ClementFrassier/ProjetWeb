@@ -46,65 +46,43 @@ function checkRequiredFunctions() {
 // Modifications à apporter dans game.js
 
 // Dans la fonction initializeGame, remplacer la partie existante :
+// Simplifier initializeGame
 async function initializeGame() {
   console.log('Initialisation du jeu...');
   
-  const urlGameId = getGameIdFromUrl();
-  if (urlGameId) {
-    currentGameId = urlGameId;
-    console.log('ID de partie récupéré depuis l\'URL:', currentGameId);
-  }
-  
-  if (!checkRequiredFunctions()) {
-    console.log('En attente des dépendances...');
-    setTimeout(initializeGame, 100);
-    return;
-  }
-
-  console.log('Toutes les dépendances sont chargées, démarrage...');
-
-  if (!currentGameId) {
-    currentGameId = null;
-  }
-  
+  // 1. Initialiser les variables globales
+  currentGameId = getGameIdFromUrl() || null;
   window.isMyTurn = false;
   placedShips = [];
   gameStatus = 'setup';
 
+  // 2. Créer l'interface utilisateur
   createGameBoards();
   setupEventListeners();
 
-  try {
-    if (currentGameId) {
-      const gameIdElement = document.getElementById('game-id');
-      if (gameIdElement) {
-        gameIdElement.textContent = currentGameId;
+  // 3. Récupérer ou créer une partie
+  if (currentGameId) {
+    // Mettre à jour l'interface avec l'ID
+    document.getElementById('game-id').textContent = currentGameId;
+    
+    try {
+      // Initialiser WebSocket et récupérer les détails
+      if (typeof initWebSocket === 'function') {
+        initWebSocket(currentGameId);
       }
       
-      const detailsResponse = await window.getGameDetails(currentGameId);
-      
-      if (detailsResponse?.error === "Accès refusé") {
-        console.log("Accès refusé - tentative de rejoindre la partie");
-        // Logique pour rejoindre...
-      } else if (detailsResponse?.game) {
-        gameStatus = detailsResponse.game.status;
-        
-        // INITIALISER WEBSOCKET ICI AUSSI
-        console.log("Initialisation WebSocket pour la partie:", currentGameId);
-        if (typeof initWebSocket === 'function') {
-          initWebSocket(currentGameId);
-        } else {
-          console.error("initWebSocket n'est pas définie");
-        }
-        
+      const gameDetails = await window.getGameDetails(currentGameId);
+      if (gameDetails?.game) {
+        gameStatus = gameDetails.game.status;
         await checkGameStatus();
         await loadExistingShips();
       }
-    } else {
-      await checkForExistingGame();
+    } catch (error) {
+      console.error("Erreur lors du chargement de la partie:", error);
     }
-  } catch (error) {
-    console.error("Erreur d'initialisation:", error);
+  } else {
+    // Vérifier si une partie existe déjà pour ce joueur
+    await checkForExistingGame();
   }
 }
 

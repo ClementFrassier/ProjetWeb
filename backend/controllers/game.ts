@@ -1,5 +1,6 @@
 import { Context } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { db } from "../config/db.ts";
+
 // Convertit les données brutes d'une ligne de base de données en objet structuré
 function convertRowToGame(row: any[]) {
   return {
@@ -70,36 +71,6 @@ export const startGame = async (ctx: Context) => {
   }
 };
 
-// Méthode alternative de création de partie utilisant un ID généré manuellement
-export const startGameAlternative = async (ctx: Context) => {
-  try {
-    const userId = ctx.state.user.id;
-    console.log("Création d'une partie pour l'utilisateur:", userId);
-
-    const gameId = Date.now();
-
-    await db.query(
-      "INSERT INTO games (id, player1_id, status) VALUES (?, ?, 'waiting')",
-      [gameId, userId]
-    );
-
-    ctx.response.status = 201;
-    ctx.response.body = { 
-      success: true,
-      gameId: gameId,
-      message: "Partie créée avec succès"
-    };
-
-  } catch (error) {
-    console.error("Erreur création partie:", error);
-    ctx.response.status = 500;
-    ctx.response.body = { 
-      success: false,
-      error: error.message,
-      details: "Échec de la création de partie"
-    };
-  }
-};
 
 // Permet à un utilisateur de rejoindre une partie existante en attente
 export const joinGame = async (ctx: Context) => {
@@ -283,7 +254,7 @@ export const makeShot = async (ctx: Context) => {
       return;
     }
 
-    // Requête complexe pour détecter si un navire est touché à cette position
+    // Requête pour détecter si un navire est touché à cette position
     const ships = await db.query(
       "SELECT * FROM ships WHERE game_id = ? AND user_id = ? AND x_position <= ? AND x_position + (CASE WHEN orientation = 'horizontal' THEN size - 1 ELSE 0 END) >= ? AND y_position <= ? AND y_position + (CASE WHEN orientation = 'vertical' THEN size - 1 ELSE 0 END) >= ?",
       [gameId, opponentId, x_position, x_position, y_position, y_position]
@@ -542,6 +513,7 @@ export const setPlayerReady = async (ctx: Context) => {
 };
 
 // Vérifie si les deux joueurs sont prêts à commencer la partie
+// SUPPRIMER checkAllShipsPlaced et utiliser cette version améliorée de checkPlayersReady:
 export const checkPlayersReady = async (ctx: Context) => {
   try {
     const gameId = ctx.request.url.searchParams.get("gameId");
@@ -577,21 +549,23 @@ export const checkPlayersReady = async (ctx: Context) => {
       return;
     }
 
-    const player1Ships = await db.query(
-      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
-      [gameId, player1Id]
+    // Vérifier les navires des deux joueurs en une seule requête
+    const shipsCount = await db.query(
+      `SELECT user_id, COUNT(*) as count 
+       FROM ships 
+       WHERE game_id = ? AND user_id IN (?, ?)
+       GROUP BY user_id`,
+      [gameId, player1Id, player2Id]
     );
+    
+    // Créer un objet pour stocker le compte de navires par joueur
+    const playerShips = {};
+    shipsCount.forEach(row => {
+      playerShips[row[0]] = row[1];
+    });
 
-    let player2Ready = false;
-    if (player2Id) {
-      const player2Ships = await db.query(
-        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
-        [gameId, player2Id]
-      );
-      player2Ready = player2Ships[0][0] === 5;
-    }
-
-    const player1Ready = player1Ships[0][0] === 5;
+    const player1Ready = (playerShips[player1Id] || 0) === 5;
+    const player2Ready = player2Id ? (playerShips[player2Id] || 0) === 5 : false;
     const allReady = player1Ready && player2Ready && player2Id !== null;
 
     ctx.response.status = 200;
@@ -599,6 +573,7 @@ export const checkPlayersReady = async (ctx: Context) => {
       player1Ready,
       player2Ready,
       allReady,
+      allShipsPlaced: allReady, // Ajout de la propriété pour compatibilité
       gameStarted: currentStatus === 'in_progress'
     };
   } catch (error) {
@@ -608,56 +583,7 @@ export const checkPlayersReady = async (ctx: Context) => {
   }
 };
 
-// Vérifie si tous les navires requis (5 par joueur) ont été placés
-export const checkAllShipsPlaced = async (ctx: Context) => {
-  try {
-    const gameId = ctx.request.url.searchParams.get("gameId");
-    
-    const games = await db.query(
-      "SELECT * FROM games WHERE id = ?",
-      [gameId]
-    );
-    
-    if (games.length === 0) {
-      ctx.response.status = 404;
-      ctx.response.body = { error: "Partie non trouvée" };
-      return;
-    }
-    
-    const game = games[0];
-    const player1Id = game[1];
-    const player2Id = game[2];
-    
-    const player1Ships = await db.query(
-      "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
-      [gameId, player1Id]
-    );
-    
-    let player2Ships = [[0]];
-    if (player2Id) {
-      player2Ships = await db.query(
-        "SELECT COUNT(*) as count FROM ships WHERE game_id = ? AND user_id = ?",
-        [gameId, player2Id]
-      );
-    }
-    
-    const allShipsPlaced = player1Ships[0][0] === 5 && 
-                          player2Ships[0][0] === 5 && 
-                          player2Id !== null;
-    
-    ctx.response.status = 200;
-    ctx.response.body = { 
-      allShipsPlaced,
-      player1Ships: player1Ships[0][0],
-      player2Ships: player2Ships[0][0]
-    };
-  } catch (error) {
-    ctx.response.status = 500;
-    ctx.response.body = { error: error.message };
-  }
-};
 
-// Démarre manuellement une partie, sans vérification des conditions préalables
 export const startGameManual = async (ctx: Context) => {
   try {
     const body = await ctx.request.body.json();
@@ -669,10 +595,7 @@ export const startGameManual = async (ctx: Context) => {
     );
     
     ctx.response.status = 200;
-    ctx.response.body = { 
-      success: true,
-      message: "Partie démarrée"
-    };
+    ctx.response.body = { success: true, message: "Partie démarrée" };
   } catch (error) {
     ctx.response.status = 500;
     ctx.response.body = { error: error.message };
