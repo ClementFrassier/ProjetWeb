@@ -31,7 +31,21 @@ async function initializeGame() {
       // Gérer silencieusement
     }
   } else {
-    await checkForExistingGame();
+    // Au lieu de vérifier les parties existantes, créer toujours une nouvelle partie
+    const response = await window.createGame();
+    if (response && !response.error) {
+      currentGameId = response.gameId;
+      document.getElementById('game-id').textContent = currentGameId;
+      
+      // Mettre à jour l'URL pour inclure l'ID de la partie sans recharger la page
+      const url = new URL(window.location.href);
+      url.searchParams.set('gameId', currentGameId);
+      window.history.pushState({}, '', url);
+      
+      if (typeof initWebSocket === 'function') {
+        initWebSocket(currentGameId);
+      }
+    }
   }
 }
 
