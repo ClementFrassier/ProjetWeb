@@ -127,30 +127,5 @@
       logout();
     });
   </script>
-
-  <script>
-setTimeout(() => {
-  const sendBtn = document.getElementById('send-message');
-  const msgInput = document.getElementById('message-input');
-  
-  if (sendBtn && msgInput) {
-    sendBtn.onclick = function() {
-      const msg = msgInput.value.trim();
-      if (msg) {
-        const chatDiv = document.getElementById('chat-messages');
-        chatDiv.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Vous: ${msg}</div>`;
-        msgInput.value = '';
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-      }
-    };
-    
-    msgInput.onkeypress = function(e) {
-      if (e.key === 'Enter') {
-        sendBtn.click();
-      }
-    };
-  }
-}, 2000);
-</script>
 </body>
 </html>
