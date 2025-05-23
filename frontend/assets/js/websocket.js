@@ -31,11 +31,12 @@ function handleWebSocketMessage(data) {
       break;
       
     case 'chat':
-      if (data.userId && data.userId.toString() !== userId.toString()) {
-        safeAddChatMessage(`${data.username || 'Adversaire'}: ${data.message}`);
+      if (data.userId && data.message) {
+        const isMyMessage = data.userId.toString() === userId.toString();
+        const displayName = isMyMessage ? 'Vous' : (data.username || 'Adversaire');
+        safeAddChatMessage(`${displayName}: ${data.message}`);
       }
-      break;
-      
+  break;
     case 'shot':
       handleOpponentShot(data.x, data.y, data.hit, data.sunk);
       break;

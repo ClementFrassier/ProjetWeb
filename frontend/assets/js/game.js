@@ -164,6 +164,8 @@ function createGameBoards() {
   }
 }
 
+// Dans la fonction setupEventListeners() de game.js, ajoutez ces lignes :
+
 function setupEventListeners() {
   const shipItems = document.querySelectorAll('.ship-item');
   shipItems.forEach(ship => {
@@ -194,6 +196,44 @@ function setupEventListeners() {
   
   const readyBtn = document.getElementById('ready-btn');
   readyBtn.addEventListener('click', playerReady);
+
+  // AJOUTEZ CES LIGNES POUR LE CHAT :
+  const sendMessageBtn = document.getElementById('send-message');
+  const messageInput = document.getElementById('message-input');
+  
+  if (sendMessageBtn && messageInput) {
+    // Événement pour le bouton d'envoi
+    sendMessageBtn.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message) {
+        handleChatSend(message);
+        messageInput.value = '';
+      }
+    });
+    
+    // Événement pour la touche Entrée
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const message = messageInput.value.trim();
+        if (message) {
+          handleChatSend(message);
+          messageInput.value = '';
+        }
+      }
+    });
+  }
+}
+
+// Assurez-vous que cette fonction existe aussi dans game.js :
+function handleChatSend(message) {
+  if (typeof window.sendChatMessage === 'function') {
+    window.sendChatMessage(message);
+  } else {
+    // Fallback si WebSocket n'est pas connecté
+    if (typeof window.addChatMessage === 'function') {
+      window.addChatMessage(`Vous (hors ligne): ${message}`);
+    }
+  }
 }
 
 function handleCellClick(event) {
