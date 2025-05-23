@@ -31,13 +31,11 @@ async function initializeGame() {
       // Gérer silencieusement
     }
   } else {
-    // Au lieu de vérifier les parties existantes, créer toujours une nouvelle partie
     const response = await window.createGame();
     if (response && !response.error) {
       currentGameId = response.gameId;
       document.getElementById('game-id').textContent = currentGameId;
       
-      // Mettre à jour l'URL pour inclure l'ID de la partie sans recharger la page
       const url = new URL(window.location.href);
       url.searchParams.set('gameId', currentGameId);
       window.history.pushState({}, '', url);
@@ -52,51 +50,6 @@ async function initializeGame() {
 function getGameIdFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('gameId');
-}
-
-async function checkForExistingGame() {
-  try {
-    const response = await window.getActiveGames();
-    
-    if (response?.error) {
-      return;
-    }
-
-    if (!response?.games || !Array.isArray(response.games) || response.games.length === 0) {
-      currentGameId = null;
-      return;
-    }
-
-    const firstGame = response.games[0];
-
-    let gameId;
-    if (Array.isArray(firstGame)) {
-      gameId = firstGame[0];
-    } else if (firstGame && typeof firstGame === 'object') {
-      gameId = firstGame.id;
-    } else {
-      return;
-    }
-
-    if (!gameId) {
-      return;
-    }
-
-    currentGameId = gameId.toString();
-
-    const gameIdElement = document.getElementById('game-id');
-    if (gameIdElement) gameIdElement.textContent = currentGameId;
-
-    if (typeof window.initWebSocket === 'function') {
-      window.initWebSocket(currentGameId);
-    }
-
-    await checkGameStatus();
-    await loadExistingShips();
-
-  } catch (error) {
-    currentGameId = null;
-  }
 }
 
 async function loadExistingShips() {
@@ -164,7 +117,10 @@ function createGameBoards() {
   }
 }
 
+// UNE SEULE fonction setupEventListeners - version simplifiée
 function setupEventListeners() {
+  console.log('🔧 Configuration des événements...');
+  
   const shipItems = document.querySelectorAll('.ship-item');
   shipItems.forEach(ship => {
     ship.addEventListener('click', () => {
@@ -177,10 +133,12 @@ function setupEventListeners() {
   });
   
   const rotateBtn = document.getElementById('rotate-btn');
-  rotateBtn.addEventListener('click', () => {
-    currentOrientation = currentOrientation === 'horizontal' ? 'vertical' : 'horizontal';
-    rotateBtn.textContent = `Rotation (${currentOrientation})`;
-  });
+  if (rotateBtn) {
+    rotateBtn.addEventListener('click', () => {
+      currentOrientation = currentOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+      rotateBtn.textContent = `Rotation (${currentOrientation})`;
+    });
+  }
   
   const playerCells = document.querySelectorAll('#player-board .cell');
   playerCells.forEach(cell => {
@@ -193,7 +151,50 @@ function setupEventListeners() {
   });
   
   const readyBtn = document.getElementById('ready-btn');
-  readyBtn.addEventListener('click', playerReady);
+  if (readyBtn) {
+    readyBtn.addEventListener('click', playerReady);
+  }
+  
+  // Configuration du chat - SIMPLE ET DIRECT
+  setTimeout(() => {
+    const sendBtn = document.getElementById('send-message');
+    const msgInput = document.getElementById('message-input');
+
+    console.log('💬 Configuration chat:', sendBtn, msgInput);
+
+    if (sendBtn && msgInput) {
+      // Supprimer tous les anciens événements
+      sendBtn.onclick = null;
+      msgInput.onkeypress = null;
+      
+      // Événement bouton
+      sendBtn.onclick = function() {
+        console.log('🚀 Clic bouton chat');
+        const msg = msgInput.value.trim();
+        console.log('📝 Message:', msg);
+        
+        if (msg) {
+          handleChatSend(msg);
+          msgInput.value = '';
+        }
+      };
+
+      // Événement touche Entrée
+      msgInput.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+          console.log('⌨️ Entrée pressée');
+          e.preventDefault();
+          const msg = msgInput.value.trim();
+          if (msg) {
+            handleChatSend(msg);
+            msgInput.value = '';
+          }
+        }
+      };
+      
+      console.log('✅ Chat configuré');
+    }
+  }, 500);
 }
 
 function handleCellClick(event) {
@@ -335,10 +336,8 @@ async function playerReady() {
       statusMessage.textContent = "Navires placés. Vérification de l'adversaire...";
     }
 
-    // Vérifie immédiatement si les deux joueurs sont prêts
     await checkBothPlayersReady();
     
-    // Puis continuer avec des vérifications périodiques
     const checkInterval = setInterval(async () => {
       const isReady = await checkBothPlayersReady();
       if (isReady) {
@@ -350,7 +349,6 @@ async function playerReady() {
     alert(`Erreur: ${error.message}`);
   }
 }
-
 
 async function checkBothPlayersReady() {
   if (!currentGameId) return false;
@@ -488,9 +486,18 @@ function addChatMessage(message) {
 window.addChatMessage = addChatMessage;
 
 function handleChatSend(message) {
-  if (typeof window.sendChatMessage === 'function') {
+  console.log('📤 handleChatSend:', message);
+  
+  if (!message || message.trim() === '') {
+    return;
+  }
+  
+  // Vérifier si WebSocket est connecté
+  if (typeof window.sendChatMessage === 'function' && typeof window.isWebSocketConnected === 'function' && window.isWebSocketConnected()) {
+    console.log('🌐 Envoi via WebSocket');
     window.sendChatMessage(message);
   } else {
+    console.log('📴 WebSocket non disponible');
     addChatMessage(`Vous (hors ligne): ${message}`);
   }
 }
