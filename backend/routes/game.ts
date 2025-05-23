@@ -18,6 +18,5 @@ router
   .get("/api/games/available", authMiddleware, getAvailableGames)
   .post("/api/games/ready", authMiddleware, setPlayerReady)
   .get("/api/games/checkReady", authMiddleware, checkPlayersReady)
-  // Utiliser checkPlayersReady au lieu de checkAllShipsPlaced
   .get("/api/games/checkAllShipsPlaced", authMiddleware, checkPlayersReady)
   .post("/api/games/startGame", authMiddleware, startGameManual);

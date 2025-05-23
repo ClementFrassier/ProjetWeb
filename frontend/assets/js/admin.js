@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
   
-  // Charger les données
   loadGames();
   
   // Configurer la déconnexion

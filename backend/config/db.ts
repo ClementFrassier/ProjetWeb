@@ -7,7 +7,7 @@ export const initDb = async () => {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
-      email TEXT NOT NULL UNIQUE,
+      email TEXT NOT NULL UNIQUE, 
       password_hash TEXT NOT NULL,
       is_admin BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -107,7 +107,7 @@ export const createDefaultAdmins = async () => {
         console.log(`Administrateur créé: ${admin.username}`);
       }
     } else {
-      console.log("Erreur administrateur deja existant.");
+      console.log("Administrateur deja existant.");
     }
   } catch (error) {
     console.error("Erreur lors de la création des administrateurs:", error);

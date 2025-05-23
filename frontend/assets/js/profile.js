@@ -44,7 +44,6 @@ async function loadProfile() {
       }
     }
   } catch (error) {
-    // Gérer l'erreur silencieusement
   }
 }
 
@@ -103,7 +102,6 @@ async function loadStats() {
     updateStat('accuracy', accuracy, '%');
     
   } catch (error) {
-    // Gérer l'erreur silencieusement
   }
 }
 

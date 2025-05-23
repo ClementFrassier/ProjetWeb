@@ -1,30 +1,26 @@
-import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
+import { ServerRequest } from "https://deno.land/std@0.200.0/http/server.ts";
 import { serveDir } from "https://deno.land/std@0.200.0/http/file_server.ts";
+import { serveTls } from "https://deno.land/std@0.200.0/http/server.ts";
 
 const port = 8080;
 
-// Lire les fichiers de certificat
 try {
-  const cert = await Deno.readTextFile("../certs/cert.pem");
-  const key = await Deno.readTextFile("../certs/key.pem");
-
-  // Démarrer le serveur HTTPS
   console.log("Démarrage du serveur HTTPS...");
-  serve(async (req) => {
+  
+  await serveTls(async (req: ServerRequest) => {
     return await serveDir(req, {
       fsRoot: ".",
       showDirListing: true,
       enableCors: true,
     });
-  }, { 
+  }, {
     port,
-    cert,
-    key,
-    // Indiquer explicitement qu'on utilise TLS
-    secure: true
+    certFile: "../certs/cert.pem",
+    keyFile: "../certs/key.pem",
   });
 
-  console.log(`Secure frontend server running on https://localhost:${port}`);
+  console.log(`Serveur frontend sécurisé lancé sur https://localhost:${port}`);
 } catch (error) {
   console.error("Erreur lors du démarrage du serveur HTTPS:", error);
+  console.error(error.stack);
 }
