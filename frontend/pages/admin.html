@@ -27,6 +27,10 @@
       border: none;
       padding: 5px 10px;
       cursor: pointer;
+      border-radius: 3px;
+    }
+    .delete-btn:hover {
+      background-color: #d32f2f;
     }
     h2 {
       margin-top: 30px;
@@ -48,6 +52,13 @@
       padding: 20px;
       border-radius: 5px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+    .admin-section {
+      margin-bottom: 40px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: white;
     }
   </style>
 </head>
@@ -75,22 +86,42 @@
   <main>
     <h2>Panneau d'administration</h2>
     
-    <h3>Liste des parties</h3>
-    <table id="games-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Joueur 1</th>
-          <th>Joueur 2</th>
-          <th>Statut</th>
-          <th>Date de création</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Les parties seront ajoutées ici -->
-      </tbody>
-    </table>
+    <div class="admin-section">
+      <h3>Gestion des utilisateurs</h3>
+      <table id="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nom d'utilisateur</th>
+            <th>Email</th>
+            <th>Admin</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Les utilisateurs seront ajoutés ici -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-section">
+      <h3>Gestion des parties</h3>
+      <table id="games-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Joueur 1</th>
+            <th>Joueur 2</th>
+            <th>Statut</th>
+            <th>Date de création</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Les parties seront ajoutées ici -->
+        </tbody>
+      </table>
+    </div>
   </main>
 
   <footer>
@@ -135,7 +166,8 @@
         
         // L'utilisateur est un administrateur authentifié
         document.getElementById('loading-overlay').style.display = 'none';
-        loadGames(); // Charger les données
+        loadUsers(); // Charger les utilisateurs
+        loadGames(); // Charger les parties
         
       } catch (error) {
         console.error("Erreur de vérification:", error);

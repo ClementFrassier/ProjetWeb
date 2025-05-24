@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
   
+  loadUsers();
   loadGames();
   
   // Configurer la déconnexion
@@ -23,6 +24,48 @@ document.addEventListener('DOMContentLoaded', async function() {
     logout();
   });
 });
+
+// Charger la liste des utilisateurs
+async function loadUsers() {
+  try {
+    const response = await fetch(`${window.API_URL}/admin/users`, {
+      method: 'GET',
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Erreur lors du chargement des utilisateurs');
+    }
+    
+    const data = await response.json();
+    const tableBody = document.querySelector('#users-table tbody');
+    
+    tableBody.innerHTML = '';
+    
+    data.users.forEach(user => {
+      const row = document.createElement('tr');
+      
+      // Formater les données utilisateur
+      const isAdmin = user[3] === 1 || user[3] === true;
+      const adminText = isAdmin ? 'Oui' : 'Non';
+      
+      row.innerHTML = `
+        <td>${user[0]}</td>
+        <td>${user[1] || 'N/A'}</td>
+        <td>${user[2] || 'N/A'}</td>
+        <td>${adminText}</td>
+        <td>
+          ${!isAdmin ? `<button class="delete-btn" onclick="deleteUser(${user[0]})">Supprimer</button>` : '<span>Protégé</span>'}
+        </td>
+      `;
+      
+      tableBody.appendChild(row);
+    });
+  } catch (error) {
+    console.error('Erreur:', error);
+    alert('Impossible de charger les utilisateurs: ' + error.message);
+  }
+}
 
 // Charger la liste des parties
 async function loadGames() {
@@ -63,6 +106,33 @@ async function loadGames() {
   } catch (error) {
     console.error('Erreur:', error);
     alert('Impossible de charger les parties: ' + error.message);
+  }
+}
+
+// Supprimer un utilisateur
+async function deleteUser(userId) {
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${userId} ? Cette action supprimera également toutes ses parties et statistiques.`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${window.API_URL}/admin/users/${userId}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Erreur lors de la suppression');
+    }
+    
+    alert(`L'utilisateur ${userId} a été supprimé avec succès.`);
+    loadUsers(); // Recharger la liste des utilisateurs
+    loadGames(); // Recharger la liste des parties (au cas où des parties auraient été supprimées)
+  } catch (error) {
+    console.error('Erreur:', error);
+    alert('Erreur lors de la suppression: ' + error.message);
   }
 }
 

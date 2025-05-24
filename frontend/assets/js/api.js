@@ -1,4 +1,3 @@
-// Helper function to convert status ID to string
 function mapStatusIdToString(statusId) {
   const statusMap = {
     0: 'waiting',
@@ -10,7 +9,7 @@ function mapStatusIdToString(statusId) {
   return typeof statusId === 'string' ? statusId : statusMap[statusId] || 'unknown';
 }
 
-// Game functions
+// Creer une partie
 async function createGame() {
   try {
     const response = await fetch(`${window.API_URL}/games/start`, {
@@ -189,7 +188,6 @@ async function getLeaderboard() {
   }
 }
 
-// Game state functions
 async function setPlayerReady(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/ready`, {
@@ -218,7 +216,7 @@ async function checkPlayersReady(gameId) {
   }
 }
 
-// Expose functions to window
+
 window.createGame = createGame;
 window.joinGame = joinGame;
 window.getGameDetails = getGameDetails;
