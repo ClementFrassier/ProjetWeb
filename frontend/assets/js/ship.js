@@ -1,3 +1,4 @@
+// Place un navire sur la grille de jeu
 async function placeShip(gameId, type, x, y, orientation) {
   try {
     const response = await fetch(`${window.API_URL}/games/placeShip`, {
@@ -19,6 +20,7 @@ async function placeShip(gameId, type, x, y, orientation) {
   }
 }
 
+// Valide si un placement de navire est autorisé
 async function validateShipPlacement(gameId, x, y, orientation, size) {
   try {
     const response = await fetch(`${window.API_URL}/games/validateShipPlacement`, {
@@ -40,6 +42,7 @@ async function validateShipPlacement(gameId, x, y, orientation, size) {
   }
 }
 
+// Récupère tous les navires placés par le joueur
 async function getPlayerShips(gameId) {
   if(!gameId) {
     return { error: "Game ID manquant", ships: [] };
@@ -56,6 +59,7 @@ async function getPlayerShips(gameId) {
   }
 }
 
+// Vérifie l'état des navires (coulés ou non)
 async function checkShipStatus(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/shipStatus`, {
@@ -71,6 +75,7 @@ async function checkShipStatus(gameId) {
   }
 }
 
+// Dessine visuellement un navire sur une grille
 function drawShip(boardId, x, y, size, orientation) {
   const board = document.getElementById(boardId);
   
@@ -94,8 +99,9 @@ function drawShip(boardId, x, y, size, orientation) {
   }
 }
 
+// Exposition des fonctions dans l'espace global
 window.placeShip = placeShip;
 window.validateShipPlacement = validateShipPlacement;
 window.getPlayerShips = getPlayerShips;
 window.checkShipStatus = checkShipStatus;
-window.drawShip = drawShip;
+window.drawShip = drawShip; 

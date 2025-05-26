@@ -1,11 +1,14 @@
 let socket = null;
 let gameId = null;
 let userId = null;
+let userName = null;
 
+// Vérifie si la connexion WebSocket est active
 function isWebSocketConnected() {
   return socket && socket.readyState === WebSocket.OPEN;
 }
 
+// Ajoute un message de chat de manière sécurisée
 function safeAddChatMessage(message) {
   if (typeof window.addChatMessage === 'function') {
     window.addChatMessage(message);
@@ -24,6 +27,7 @@ function safeAddChatMessage(message) {
   }
 }
 
+// Traite les messages reçus du serveur WebSocket
 function handleWebSocketMessage(data) {
   switch (data.type) {
     case 'game_joined':
@@ -36,7 +40,8 @@ function handleWebSocketMessage(data) {
         const displayName = isMyMessage ? 'Vous' : (data.username || 'Adversaire');
         safeAddChatMessage(`${displayName}: ${data.message}`);
       }
-  break;
+      break;
+      
     case 'shot':
       handleOpponentShot(data.x, data.y, data.hit, data.sunk);
       break;
@@ -65,7 +70,6 @@ function handleWebSocketMessage(data) {
           opponentBoard.classList.remove('hidden');
         }
       }
-
       break;
       
     case 'game_over':
@@ -107,10 +111,10 @@ function handleWebSocketMessage(data) {
     case 'player_disconnected':
       safeAddChatMessage(`${data.message || 'Un joueur s\'est déconnecté'}`);
       break;
-    
   }
 }
 
+// Initialise la connexion WebSocket pour une partie
 function initWebSocket(currentGameId) {
   if (socket && socket.readyState === WebSocket.OPEN) {
     return;
@@ -120,6 +124,7 @@ function initWebSocket(currentGameId) {
   
   const user = JSON.parse(localStorage.getItem('user'));
   userId = user ? user.id : null;
+  userName = user ? user.username : null;
   
   if (!userId) {
     return;
@@ -135,7 +140,8 @@ function initWebSocket(currentGameId) {
     const joinMessage = { 
       type: 'join',
       gameId: gameId, 
-      userId: userId 
+      userId: userId,
+      username: userName
     };
     
     socket.send(JSON.stringify(joinMessage));
@@ -146,7 +152,6 @@ function initWebSocket(currentGameId) {
       const data = JSON.parse(event.data);
       handleWebSocketMessage(data);
     } catch (error) {
-      // Silencieux en prod
     }
   };
   
@@ -159,6 +164,7 @@ function initWebSocket(currentGameId) {
   };
 }
 
+// Envoie un message via WebSocket
 function sendWebSocketMessage(type, data) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     return;
@@ -172,15 +178,18 @@ function sendWebSocketMessage(type, data) {
   socket.send(JSON.stringify(message));
 }
 
+// Envoie un tir à l'adversaire
 function sendShot(x, y) {
   sendWebSocketMessage('shot', {
     gameId: gameId,
     userId: userId,
+    username: userName,
     x: x,
     y: y
   });
 }
 
+// Envoie un message de chat
 function sendChatMessage(message) {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     return;
@@ -188,11 +197,13 @@ function sendChatMessage(message) {
   
   const currentGameId = gameId || window.currentGameId;
   const currentUserId = userId || getUserId();
+  const currentUserName = userName || getUserName();
   
   const chatData = {
     type: 'chat',
     gameId: currentGameId,
     userId: currentUserId,
+    username: currentUserName,
     message: message
   };
   
@@ -200,11 +211,19 @@ function sendChatMessage(message) {
   safeAddChatMessage(`Vous: ${message}`);
 }
 
+// Récupère l'ID de l'utilisateur connecté
 function getUserId() {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   return user.id || null;
 }
 
+// Récupère le nom d'utilisateur connecté
+function getUserName() {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  return user.username || null;
+}
+
+// Gère un tir reçu de l'adversaire
 function handleOpponentShot(x, y, hit, sunk) {
   const cellId = `player-board-${x}-${y}`;
   const cell = document.getElementById(cellId);
@@ -232,6 +251,7 @@ function handleOpponentShot(x, y, hit, sunk) {
   }
 }
 
+// Gère le résultat d'un tir effectué
 function handleShotResult(x, y, hit, sunk) {
   const cellId = `opponent-board-${x}-${y}`;
   const cell = document.getElementById(cellId);
@@ -259,6 +279,7 @@ function handleShotResult(x, y, hit, sunk) {
   }
 }
 
+// Ferme la connexion WebSocket
 function closeWebSocket() {
   if (socket) {
     socket.close();
@@ -267,6 +288,7 @@ function closeWebSocket() {
   }
 }
 
+// Exposition des fonctions dans l'espace global
 window.initWebSocket = initWebSocket;
 window.sendWebSocketMessage = sendWebSocketMessage;
 window.sendShot = sendShot;

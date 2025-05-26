@@ -52,7 +52,6 @@ export const deleteUser = async (ctx: Context) => {
       await db.query("DELETE FROM games WHERE id = ?", [gameId]);
     }
     
-    // Supprimer l'utilisateur
     await db.query("DELETE FROM users WHERE id = ?", [userId]);
     
     ctx.response.status = 200;

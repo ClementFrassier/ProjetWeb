@@ -1,4 +1,4 @@
-// Vérifier si l'utilisateur est administrateur
+// Vérifie les droits admin et initialise la page d'administration
 document.addEventListener('DOMContentLoaded', async function() {
   const isAuthenticated = await checkAuthentication();
   if (!isAuthenticated) {
@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
   
-  // Vérifier si l'utilisateur est admin
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   if (!user.is_admin) {
     alert("Vous n'avez pas les droits d'administrateur pour accéder à cette page.");
@@ -18,14 +17,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   loadUsers();
   loadGames();
   
-  // Configurer la déconnexion
   document.getElementById('logout-link').addEventListener('click', function(e) {
     e.preventDefault();
     logout();
   });
 });
 
-// Charger la liste des utilisateurs
+// Charge et affiche la liste des utilisateurs
 async function loadUsers() {
   try {
     const response = await fetch(`${window.API_URL}/admin/users`, {
@@ -45,7 +43,6 @@ async function loadUsers() {
     data.users.forEach(user => {
       const row = document.createElement('tr');
       
-      // Formater les données utilisateur
       const isAdmin = user[3] === 1 || user[3] === true;
       const adminText = isAdmin ? 'Oui' : 'Non';
       
@@ -67,7 +64,7 @@ async function loadUsers() {
   }
 }
 
-// Charger la liste des parties
+// Charge et affiche la liste des parties
 async function loadGames() {
   try {
     const response = await fetch(`${window.API_URL}/admin/games`, {
@@ -87,7 +84,6 @@ async function loadGames() {
     data.games.forEach(game => {
       const row = document.createElement('tr');
       
-      // Formater la date
       const createdDate = game[4] ? new Date(game[4]).toLocaleString() : 'N/A';
       
       row.innerHTML = `
@@ -109,7 +105,7 @@ async function loadGames() {
   }
 }
 
-// Supprimer un utilisateur
+// Supprime un utilisateur après confirmation
 async function deleteUser(userId) {
   if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${userId} ? Cette action supprimera également toutes ses parties et statistiques.`)) {
     return;
@@ -128,15 +124,15 @@ async function deleteUser(userId) {
     }
     
     alert(`L'utilisateur ${userId} a été supprimé avec succès.`);
-    loadUsers(); // Recharger la liste des utilisateurs
-    loadGames(); // Recharger la liste des parties (au cas où des parties auraient été supprimées)
+    loadUsers();
+    loadGames();
   } catch (error) {
     console.error('Erreur:', error);
     alert('Erreur lors de la suppression: ' + error.message);
   }
 }
 
-// Supprimer une partie
+// Supprime une partie après confirmation
 async function deleteGame(gameId) {
   if (!confirm(`Êtes-vous sûr de vouloir supprimer la partie ${gameId} ?`)) {
     return;
@@ -153,9 +149,9 @@ async function deleteGame(gameId) {
     }
     
     alert(`La partie ${gameId} a été supprimée avec succès.`);
-    loadGames(); // Recharger la liste des parties
+    loadGames();
   } catch (error) {
     console.error('Erreur:', error);
     alert('Erreur lors de la suppression: ' + error.message);
   }
-}
+} 

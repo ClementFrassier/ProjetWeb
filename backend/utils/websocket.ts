@@ -4,6 +4,8 @@ import { db } from "../config/db.ts";
 interface GameConnection {
   player1?: WebSocket;
   player2?: WebSocket;
+  player1Username?: string;
+  player2Username?: string;
 }
 
 // Map pour stocker les connexions par ID de partie
@@ -62,8 +64,8 @@ async function handleMessage(socket: WebSocket, message: any, gameId: string) {
 
 // Gérer l'action de rejoindre une partie
 async function handleJoin(socket: WebSocket, message: any, gameId: string) {
-  const { userId } = message;
-  console.log("Join request:", { gameId, userId });
+  const { userId, username } = message;
+  console.log("Join request:", { gameId, userId, username });
   
   if (!userId) {
     console.error("userId manquant dans message join");
@@ -79,6 +81,17 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
     gameConnections.set(gameId, gameConnection);
   }
 
+  // Récupérer le vrai username depuis la base de données si pas fourni
+  let realUsername = username;
+  if (!realUsername) {
+    try {
+      const userInfo = await db.query("SELECT username FROM users WHERE id = ?", [userId]);
+      realUsername = userInfo.length > 0 ? userInfo[0][0] : `Joueur ${userId}`;
+    } catch (error) {
+      realUsername = `Joueur ${userId}`;
+    }
+  }
+
   const gameInfo = await db.query(
     "SELECT player1_id, player2_id FROM games WHERE id = ?",
     [gameId]
@@ -88,14 +101,16 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
     const player1Id = gameInfo[0][0];
     const player2Id = gameInfo[0][1];
 
-    console.log("GameInfo from DB:", { player1Id, player2Id, userId });
+    console.log("GameInfo from DB:", { player1Id, player2Id, userId, username: realUsername });
 
     if (userId == player1Id) {
       gameConnection.player1 = socket;
-      console.log(`Joueur 1 (ID: ${userId}) connecté à la partie ${gameId}`);
+      gameConnection.player1Username = realUsername;
+      console.log(`Joueur 1 (${realUsername}) connecté à la partie ${gameId}`);
     } else if (userId == player2Id) {
       gameConnection.player2 = socket;
-      console.log(`Joueur 2 (ID: ${userId}) connecté à la partie ${gameId}`);
+      gameConnection.player2Username = realUsername;
+      console.log(`Joueur 2 (${realUsername}) connecté à la partie ${gameId}`);
     } else {
       console.log(`Joueur ${userId} n'est pas dans la partie ${gameId}`);
       return;
@@ -106,34 +121,45 @@ async function handleJoin(socket: WebSocket, message: any, gameId: string) {
 
   console.log("État actuel des connexions:", {
     gameId: gameId,
-    player1: gameConnection.player1 ? "connecté" : "non connecté",
-    player2: gameConnection.player2 ? "connecté" : "non connecté"
+    player1: gameConnection.player1 ? `connecté (${gameConnection.player1Username})` : "non connecté",
+    player2: gameConnection.player2 ? `connecté (${gameConnection.player2Username})` : "non connecté"
   });
 
   // Notifier les autres joueurs (sans inclure l'émetteur)
   broadcastToGame(gameId, {
     type: "game_joined",
     userId: userId,
-    username: `Joueur ${userId}`,
-    message: `Joueur ${userId} a rejoint la partie`
+    username: realUsername,
+    message: `${realUsername} a rejoint la partie`
   }, socket);
 }
 
 // Gérer les messages de chat
 async function handleChat(socket: WebSocket, message: any, gameId: string) {
-  const { userId, message: chatMessage } = message;
-  console.log(`Chat reçu de ${userId}: ${chatMessage}`);
+  const { userId, username, message: chatMessage } = message;
+  console.log(`Chat reçu de ${username || userId}: ${chatMessage}`);
   
   if (!userId || !chatMessage) {
     console.error("Données manquantes:", { userId, chatMessage });
     return;
   }
 
-  // Créer un message avec username basé sur le userId
+  // Récupérer le vrai username si pas fourni
+  let realUsername = username;
+  if (!realUsername) {
+    try {
+      const userInfo = await db.query("SELECT username FROM users WHERE id = ?", [userId]);
+      realUsername = userInfo.length > 0 ? userInfo[0][0] : `Joueur ${userId}`;
+    } catch (error) {
+      realUsername = `Joueur ${userId}`;
+    }
+  }
+
+  // Créer un message avec le vrai username
   const broadcastMessage = {
     type: "chat",
     userId: userId,
-    username: `Joueur ${userId}`,
+    username: realUsername,
     message: chatMessage,
     timestamp: new Date().toISOString()
   };
@@ -144,7 +170,7 @@ async function handleChat(socket: WebSocket, message: any, gameId: string) {
 
 // Gérer un tir
 async function handleShot(socket, message, gameId) {
-  const { userId, x, y } = message;
+  const { userId, x, y, username } = message;
   
   if (!userId || x === undefined || y === undefined) {
     console.error("Données de tir invalides");
@@ -300,6 +326,7 @@ async function handleShot(socket, message, gameId) {
     console.error("Erreur lors du traitement du tir:", error);
   }
 }
+
 // Fonction pour diffuser un message à tous les joueurs d'une partie
 function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket) {
   const gameConnection = gameConnections.get(gameId);
@@ -330,7 +357,7 @@ function broadcastToGame(gameId: string, message: any, excludeSocket?: WebSocket
       gameConnection.player2.send(jsonMessage);
     } catch (error) {
       console.error("Erreur d'envoi au joueur 2:", error);
-      gameConnection.player2 = undefined; // Nettoyer la connexion défaillante
+      gameConnection.player2 = undefined;
     }
   }
 }
@@ -340,49 +367,27 @@ async function handleDisconnect(socket: WebSocket, gameId: string) {
   const gameConnection = gameConnections.get(gameId);
   
   if (gameConnection) {
-    let disconnectedUserId: string | null = null; 
+    let disconnectedUsername: string | null = null; 
     
     // Déterminer qui s'est déconnecté
     if (gameConnection.player1 === socket) {
+      disconnectedUsername = gameConnection.player1Username || null;
       gameConnection.player1 = undefined;
+      gameConnection.player1Username = undefined;
       console.log("Player1 déconnecté de la partie", gameId);
-      
-      for (const [userId, gId] of userGames.entries()) {
-        if (gId === gameId) {
-          const gameInfo = await db.query(
-            "SELECT player1_id FROM games WHERE id = ?",
-            [gameId]
-          );
-          if (gameInfo.length > 0 && gameInfo[0][0] == userId) {
-            disconnectedUserId = userId;
-            break;
-          }
-        }
-      }
     } else if (gameConnection.player2 === socket) {
+      disconnectedUsername = gameConnection.player2Username || null;
       gameConnection.player2 = undefined;
+      gameConnection.player2Username = undefined;
       console.log("Player2 déconnecté de la partie", gameId);
-      
-      for (const [userId, gId] of userGames.entries()) {
-        if (gId === gameId) {
-          const gameInfo = await db.query(
-            "SELECT player2_id FROM games WHERE id = ?",
-            [gameId]
-          );
-          if (gameInfo.length > 0 && gameInfo[0][0] == userId) {
-            disconnectedUserId = userId;
-            break;
-          }
-        }
-      }
     }
 
     // Notifier l'autre joueur de la déconnexion
-    if (disconnectedUserId) {
+    if (disconnectedUsername) {
       broadcastToGame(gameId, {
         type: "player_disconnected",
-        userId: disconnectedUserId,
-        message: `Joueur ${disconnectedUserId} s'est déconnecté`
+        username: disconnectedUsername,
+        message: `${disconnectedUsername} s'est déconnecté`
       });
     }
 

@@ -4,6 +4,7 @@ let selectedShipType = null;
 let placedShips = [];
 let gameStatus = 'setup'; 
 
+// Initialise une nouvelle partie ou rejoint une partie existante
 async function initializeGame() {
   currentGameId = getGameIdFromUrl() || null;
   window.isMyTurn = false;
@@ -14,6 +15,7 @@ async function initializeGame() {
   setupEventListeners();
 
   if (currentGameId) {
+    //Rejoindre une partie existante
     document.getElementById('game-id').textContent = currentGameId;
     
     try {
@@ -28,16 +30,14 @@ async function initializeGame() {
         await loadExistingShips();
       }
     } catch (error) {
-      // Gérer silencieusement
     }
   } else {
-    // Au lieu de vérifier les parties existantes, créer toujours une nouvelle partie
+    // Créer une nouvelle partie
     const response = await window.createGame();
     if (response && !response.error) {
       currentGameId = response.gameId;
       document.getElementById('game-id').textContent = currentGameId;
       
-      // Mettre à jour l'URL pour inclure l'ID de la partie sans recharger la page
       const url = new URL(window.location.href);
       url.searchParams.set('gameId', currentGameId);
       window.history.pushState({}, '', url);
@@ -49,56 +49,13 @@ async function initializeGame() {
   }
 }
 
+// Récupère l'ID de partie depuis l'URL
 function getGameIdFromUrl() {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('gameId');
 }
 
-async function checkForExistingGame() {
-  try {
-    const response = await window.getActiveGames();
-    
-    if (response?.error) {
-      return;
-    }
-
-    if (!response?.games || !Array.isArray(response.games) || response.games.length === 0) {
-      currentGameId = null;
-      return;
-    }
-
-    const firstGame = response.games[0];
-
-    let gameId;
-    if (Array.isArray(firstGame)) {
-      gameId = firstGame[0];
-    } else if (firstGame && typeof firstGame === 'object') {
-      gameId = firstGame.id;
-    } else {
-      return;
-    }
-
-    if (!gameId) {
-      return;
-    }
-
-    currentGameId = gameId.toString();
-
-    const gameIdElement = document.getElementById('game-id');
-    if (gameIdElement) gameIdElement.textContent = currentGameId;
-
-    if (typeof window.initWebSocket === 'function') {
-      window.initWebSocket(currentGameId);
-    }
-
-    await checkGameStatus();
-    await loadExistingShips();
-
-  } catch (error) {
-    currentGameId = null;
-  }
-}
-
+// Charge les navires déjà placés par le joueur
 async function loadExistingShips() {
   if (!currentGameId) {
     return;
@@ -134,10 +91,10 @@ async function loadExistingShips() {
       });
     }
   } catch (error) {
-    // Gérer silencieusement
   }
 }
 
+// Crée les grilles de jeu (joueur et adversaire)
 function createGameBoards() {
   const playerBoard = document.getElementById('player-board');
   const opponentBoard = document.getElementById('opponent-board');
@@ -164,9 +121,9 @@ function createGameBoards() {
   }
 }
 
-// Dans la fonction setupEventListeners() de game.js, ajoutez ces lignes :
-
+// Configure tous les écouteurs d'événements
 function setupEventListeners() {
+  //Selection des navires
   const shipItems = document.querySelectorAll('.ship-item');
   shipItems.forEach(ship => {
     ship.addEventListener('click', () => {
@@ -178,31 +135,34 @@ function setupEventListeners() {
     });
   });
   
+  //rotation des bateaux 
   const rotateBtn = document.getElementById('rotate-btn');
   rotateBtn.addEventListener('click', () => {
     currentOrientation = currentOrientation === 'horizontal' ? 'vertical' : 'horizontal';
     rotateBtn.textContent = `Rotation (${currentOrientation})`;
   });
   
+  //place un bateau
   const playerCells = document.querySelectorAll('#player-board .cell');
   playerCells.forEach(cell => {
     cell.addEventListener('click', handleCellClick);
   });
   
+  //tire sur une grille adverse
   const opponentCells = document.querySelectorAll('#opponent-board .cell');
   opponentCells.forEach(cell => {
     cell.addEventListener('click', handleShotClick);
   });
   
+  //Bouton pret
   const readyBtn = document.getElementById('ready-btn');
   readyBtn.addEventListener('click', playerReady);
 
-  // AJOUTEZ CES LIGNES POUR LE CHAT :
+  // Configuration du chat
   const sendMessageBtn = document.getElementById('send-message');
   const messageInput = document.getElementById('message-input');
   
   if (sendMessageBtn && messageInput) {
-    // Événement pour le bouton d'envoi
     sendMessageBtn.addEventListener('click', () => {
       const message = messageInput.value.trim();
       if (message) {
@@ -211,7 +171,6 @@ function setupEventListeners() {
       }
     });
     
-    // Événement pour la touche Entrée
     messageInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         const message = messageInput.value.trim();
@@ -224,18 +183,20 @@ function setupEventListeners() {
   }
 }
 
-// Assurez-vous que cette fonction existe aussi dans game.js :
+// Envoie un message de chat
 function handleChatSend(message) {
+
   if (typeof window.sendChatMessage === 'function') {
     window.sendChatMessage(message);
   } else {
-    // Fallback si WebSocket n'est pas connecté
+    //Local
     if (typeof window.addChatMessage === 'function') {
       window.addChatMessage(`Vous (hors ligne): ${message}`);
     }
   }
 }
 
+// Gère le clic sur une cellule pour placer un navire
 function handleCellClick(event) {
   if ((gameStatus !== 'setup' && gameStatus !== 'waiting') || !selectedShipType) {
     return;
@@ -271,6 +232,7 @@ function handleCellClick(event) {
   }
 }
 
+// Vérifie si le placement d'un navire est valide
 function isValidPlacement(x, y, size, orientation) {
   if (orientation === 'horizontal') {
     if (x + size > 10) return false;
@@ -299,6 +261,7 @@ function isValidPlacement(x, y, size, orientation) {
   return true;
 }
 
+// Affiche visuellement un navire sur la grille
 function placeShipVisually(x, y, size, orientation) {
   for (let i = 0; i < size; i++) {
     let posX = x;
@@ -318,6 +281,7 @@ function placeShipVisually(x, y, size, orientation) {
   }
 }
 
+// Retourne la taille d'un navire selon son type
 function getShipSize(type) {
   switch (type) {
     case 'carrier': return 5;
@@ -329,6 +293,7 @@ function getShipSize(type) {
   }
 }
 
+// Marque le joueur comme prêt et place tous les navires
 async function playerReady() {
   if (placedShips.length !== 5) {
     alert("Vous devez placer vos 5 navires avant de continuer");
@@ -375,10 +340,8 @@ async function playerReady() {
       statusMessage.textContent = "Navires placés. Vérification de l'adversaire...";
     }
 
-    // Vérifie immédiatement si les deux joueurs sont prêts
     await checkBothPlayersReady();
     
-    // Puis continuer avec des vérifications périodiques
     const checkInterval = setInterval(async () => {
       const isReady = await checkBothPlayersReady();
       if (isReady) {
@@ -391,7 +354,7 @@ async function playerReady() {
   }
 }
 
-
+// Vérifie si les deux joueurs sont prêts à commencer
 async function checkBothPlayersReady() {
   if (!currentGameId) return false;
   
@@ -422,6 +385,7 @@ async function checkBothPlayersReady() {
   }
 }
 
+// Vérifie et met à jour le statut de la partie
 async function checkGameStatus() {
   if (!currentGameId) {
     return;
@@ -469,10 +433,11 @@ async function checkGameStatus() {
       }
     }
   } catch (error) {
-    // Gérer silencieusement
+
   }
 }
 
+// Détermine et affiche de qui c'est le tour
 function checkTurn(game) {
   const userId = getUserId();
   const isPlayer1 = game.player1_id === userId;
@@ -486,6 +451,7 @@ function checkTurn(game) {
   }
 }
 
+// Gère un clic de tir sur la grille adverse
 async function handleShotClick(event) {
   if (gameStatus !== 'in_progress' || !window.isMyTurn) return;
   
@@ -509,6 +475,7 @@ async function handleShotClick(event) {
   }
 }
 
+// Ajoute un message au chat
 function addChatMessage(message) {
   const chatMessages = document.getElementById('chat-messages');
   if (!chatMessages) {
@@ -525,17 +492,10 @@ function addChatMessage(message) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-window.addChatMessage = addChatMessage;
-
-function handleChatSend(message) {
-  if (typeof window.sendChatMessage === 'function') {
-    window.sendChatMessage(message);
-  } else {
-    addChatMessage(`Vous (hors ligne): ${message}`);
-  }
-}
-
+// Récupère l'ID de l'utilisateur connecté
 function getUserId() {
   const user = JSON.parse(localStorage.getItem('user'));
   return user ? user.id : null;
 }
+
+window.addChatMessage = addChatMessage; 

@@ -1,9 +1,6 @@
+// Vérifie si l'utilisateur est connecté et met à jour l'interface
 async function checkAuthentication() {
   try {
-    console.log("window.API_URL:", window.API_URL);
-    console.log("Type of window.API_URL:", typeof window.API_URL);
-    console.log("API_URL utilisé:", window.API_URL);
-    
     const response = await fetch(`${window.API_URL}/auth/check`, {
       method: 'GET',
       credentials: 'include',
@@ -11,10 +8,9 @@ async function checkAuthentication() {
     });
 
     const data = await response.json();
-    console.log("Data reçue:", data);
 
     if (response.ok) {
-      // L'utilisateur est connecté
+      // Utilisateur connecté - Afficher les liens appropriés
       document.getElementById('login-link')?.style.setProperty('display', 'none');
       document.getElementById('register-link')?.style.setProperty('display', 'none');
       document.getElementById('profile-link')?.style.setProperty('display', 'block');
@@ -22,20 +18,14 @@ async function checkAuthentication() {
       document.getElementById('logout-link')?.style.setProperty('display', 'block');
       document.getElementById('lobby-link')?.style.setProperty('display', 'block');
 
-      // Vérification du statut admin améliorée
+      // Afficher le lien admin si l'utilisateur est administrateur
       const adminLink = document.getElementById('admin-link');
       if (adminLink) {
-        console.log('Admin link found, is_admin:', data.user?.is_admin);
-        // Force l'affichage si l'utilisateur est admin
         if (data.user?.is_admin === true) {
           adminLink.style.setProperty('display', 'block');
-          console.log('Admin link display set to block');
         } else {
           adminLink.style.setProperty('display', 'none');
-          console.log('Admin link display set to none');
         }
-      } else {
-        console.log('Admin link not found in DOM');
       }
 
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -46,10 +36,9 @@ async function checkAuthentication() {
         startBtn.href = 'pages/game.html';
       }
       
-      console.log("L'utilisateur est authentifié !");
       return true;
     } else {  
-      // L'utilisateur n'est pas connecté
+      // Utilisateur non connecté - Afficher les liens de connexion
       document.getElementById('login-link')?.style.setProperty('display', 'block');
       document.getElementById('register-link')?.style.setProperty('display', 'block');
       document.getElementById('profile-link')?.style.setProperty('display', 'none');
@@ -64,6 +53,8 @@ async function checkAuthentication() {
     } 
   } catch (error) {
     console.error("Erreur lors de la vérification d'authentification:", error);
+    
+    // En cas d'erreur, afficher les liens de connexion
     document.getElementById('login-link')?.style.setProperty('display', 'block');
     document.getElementById('register-link')?.style.setProperty('display', 'block');
     document.getElementById('profile-link')?.style.setProperty('display', 'none');
@@ -77,6 +68,7 @@ async function checkAuthentication() {
   }
 }
 
+// Connecte un utilisateur avec nom d'utilisateur et mot de passe
 async function login(username, password) {
   try {
     const response = await fetch(`${window.API_URL}/auth/login`, {
@@ -99,6 +91,7 @@ async function login(username, password) {
   }
 }
 
+// Inscrit un nouvel utilisateur
 async function register(username, email, password) {
   try {
     const response = await fetch(`${window.API_URL}/auth/register`, {
@@ -119,6 +112,7 @@ async function register(username, email, password) {
   }
 }
 
+// Déconnecte l'utilisateur actuel
 async function logout() {
   try {
     const response = await fetch(`${window.API_URL}/auth/logout`, {

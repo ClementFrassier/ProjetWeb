@@ -1,5 +1,6 @@
 let currentUserId = null;
 
+// Initialise la page profil avec vérification d'authentification
 document.addEventListener('DOMContentLoaded', async () => {
   const isAuthenticated = await checkAuthentication();
   if (!isAuthenticated) {
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+// Charge et affiche les informations de profil
 async function loadProfile() {
   try {
     const response = await fetch(`${window.API_URL}/users/profile`, {
@@ -44,9 +46,11 @@ async function loadProfile() {
       }
     }
   } catch (error) {
+    // Gérer silencieusement
   }
 }
 
+// Charge et affiche les statistiques de jeu
 async function loadStats() {
   try {
     const response = await fetch(`${window.API_URL}/users/stats`, {
@@ -58,6 +62,7 @@ async function loadStats() {
     
     const data = await response.json();
     
+    // Met à jour une statistique dans le DOM
     function updateStat(id, value, suffix = '') {
       document.getElementById(id).textContent = value !== undefined ? `${value}${suffix}` : '-';
     }
@@ -90,6 +95,7 @@ async function loadStats() {
       }
     }
     
+    // Calcule et affiche les pourcentages
     const gamesPlayed = parseInt(document.getElementById('games-played').textContent);
     const gamesWon = parseInt(document.getElementById('games-won').textContent);
     const totalShots = parseInt(document.getElementById('total-shots').textContent);
@@ -105,6 +111,7 @@ async function loadStats() {
   }
 }
 
+// Charge et affiche le classement des joueurs
 async function loadLeaderboard() {
   try {
     const response = await fetch(`${window.API_URL}/users/leaderboard`, {

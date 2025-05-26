@@ -59,14 +59,14 @@
   </main>
 
   <footer>
-    <p>&copy; 2025 Bataille Navale - Projet Web</p>
+    <p>&copy; Bataille Navale </p>
   </footer>
   
   <script src="assets/js/config.js"></script>
   <script src="assets/js/auth.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      checkAuthentication(); // Vérifie l'auth au chargement
+      checkAuthentication(); 
 
       const logoutLink = document.getElementById('logout-link');
       if (logoutLink) {
@@ -79,7 +79,7 @@
   </script>
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
-    // Vérifie d'abord si l'utilisateur est connecté via localStorage
+    // Vérifie d'abord si l'utilisateur est connecté 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
     // Si l'utilisateur est admin, afficher immédiatement le lien
@@ -87,7 +87,6 @@
       const adminLink = document.getElementById('admin-link');
       if (adminLink) {
         adminLink.style.display = 'block';
-        console.log('Lien admin activé par le script de correction');
       }
     }
   });

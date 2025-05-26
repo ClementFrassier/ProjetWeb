@@ -1,3 +1,4 @@
+// Convertit un ID de statut numérique en chaîne lisible
 function mapStatusIdToString(statusId) {
   const statusMap = {
     0: 'waiting',
@@ -9,7 +10,7 @@ function mapStatusIdToString(statusId) {
   return typeof statusId === 'string' ? statusId : statusMap[statusId] || 'unknown';
 }
 
-// Creer une partie
+// Crée une nouvelle partie de bataille navale
 async function createGame() {
   try {
     const response = await fetch(`${window.API_URL}/games/start`, {
@@ -30,6 +31,7 @@ async function createGame() {
   }
 }
 
+// Rejoint une partie existante
 async function joinGame(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/join`, {
@@ -45,6 +47,7 @@ async function joinGame(gameId) {
   }
 }
 
+// Récupère les détails d'une partie spécifique
 async function getGameDetails(gameId) {
   if (!gameId) return { error: "Game ID required" };
 
@@ -81,6 +84,7 @@ async function getGameDetails(gameId) {
   }
 }
 
+// Récupère les parties actives de l'utilisateur
 async function getActiveGames() {
   try {
     const response = await fetch(`${window.API_URL}/games/active`, {
@@ -119,6 +123,7 @@ async function getActiveGames() {
   }
 }
 
+// Effectue un tir sur la grille adverse
 async function makeShot(gameId, x, y) {
   try {
     const response = await fetch(`${window.API_URL}/games/shot`, {
@@ -134,6 +139,7 @@ async function makeShot(gameId, x, y) {
   }
 }
 
+// Abandonne la partie en cours
 async function abandonGame(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/dabandon`, {
@@ -149,7 +155,7 @@ async function abandonGame(gameId) {
   }
 }
 
-// User functions
+// Récupère le profil de l'utilisateur connecté
 async function getUserProfile() {
   try {
     const response = await fetch(`${window.API_URL}/users/profile`, {
@@ -163,6 +169,7 @@ async function getUserProfile() {
   }
 }
 
+// Récupère les statistiques de l'utilisateur
 async function getUserStats() {
   try {
     const response = await fetch(`${window.API_URL}/users/stats`, {
@@ -176,6 +183,7 @@ async function getUserStats() {
   }
 }
 
+// Récupère le classement général des joueurs
 async function getLeaderboard() {
   try {
     const response = await fetch(`${window.API_URL}/users/leaderboard`, {
@@ -188,6 +196,7 @@ async function getLeaderboard() {
   }
 }
 
+// Marque le joueur comme prêt à commencer
 async function setPlayerReady(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/ready`, {
@@ -203,6 +212,7 @@ async function setPlayerReady(gameId) {
   }
 }
 
+// Vérifie si les deux joueurs sont prêts
 async function checkPlayersReady(gameId) {
   try {
     const response = await fetch(`${window.API_URL}/games/checkReady?gameId=${gameId}`, {
@@ -216,7 +226,7 @@ async function checkPlayersReady(gameId) {
   }
 }
 
-
+// Exposition des fonctions dans l'espace global
 window.createGame = createGame;
 window.joinGame = joinGame;
 window.getGameDetails = getGameDetails;

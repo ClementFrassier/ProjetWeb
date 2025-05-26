@@ -32,7 +32,6 @@ export const startGame = async (ctx: Context) => {
 
       console.log("Résultat de last_insert_rowid:", result);
 
-      // Gestion des différents formats possibles du résultat selon le driver SQLite
       let gameId;
       if (result && result.length > 0) {
         if (Array.isArray(result[0])) {

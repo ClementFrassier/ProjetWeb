@@ -1,5 +1,6 @@
 let myUserId = null;
 
+// Initialise la page lobby avec vérification d'authentification
 document.addEventListener('DOMContentLoaded', async () => {
   const isAuthenticated = await checkAuthentication();
   if (!isAuthenticated) {
@@ -11,15 +12,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = JSON.parse(localStorage.getItem('user'));
   myUserId = user?.id;
 
-  await loadGames();
+  await loadAvailableGames();
   setupEventListeners();
 });
 
-async function loadGames() {
-  await loadAvailableGames();
-  await loadMyGames();
-}
-
+// Charge les parties disponibles à rejoindre
 async function loadAvailableGames() {
   try {
     const response = await fetch(`${window.API_URL}/games/available`, {
@@ -38,18 +35,7 @@ async function loadAvailableGames() {
   }
 }
 
-async function loadMyGames() {
-  try {
-    const response = await window.getActiveGames();
-    
-    if (response?.games && Array.isArray(response.games)) {
-      displayMyGames(response.games);
-    }
-  } catch (error) {
-    // Gérer silencieusement
-  }
-}
-
+// Affiche les parties disponibles à rejoindre
 function displayAvailableGames(games) {
   const container = document.getElementById('available-games');
   container.innerHTML = '';
@@ -87,63 +73,7 @@ function displayAvailableGames(games) {
   });
 }
 
-function displayMyGames(games) {
-  const container = document.getElementById('my-games');
-  container.innerHTML = '';
-
-  if (games.length === 0) {
-    container.innerHTML = '<p>Aucune partie en cours</p>';
-    return;
-  }
-
-  games.forEach(game => {
-    let gameData;
-    if (Array.isArray(game)) {
-      gameData = {
-        id: game[0],
-        player1_id: game[1],
-        player2_id: game[2],
-        status: game[3],
-        created_at: game[5]
-      };
-    } else {
-      gameData = game;
-    }
-
-    let statusText = '';
-    let actionButton = '';
-
-    switch (gameData.status) {
-      case 'waiting':
-        statusText = 'En attente d\'un adversaire';
-        actionButton = `<button onclick="goToGame(${gameData.id})">Voir</button>`;
-        break;
-      case 'setup':
-        statusText = 'Placement des navires';
-        actionButton = `<button onclick="goToGame(${gameData.id})">Continuer</button>`;
-        break;
-      case 'in_progress':
-        statusText = 'Partie en cours';
-        actionButton = `<button onclick="goToGame(${gameData.id})">Jouer</button>`;
-        break;
-      default:
-        statusText = gameData.status;
-    }
-
-    const gameItem = document.createElement('div');
-    gameItem.className = 'game-item';
-    gameItem.innerHTML = `
-      <div>
-        <strong>Partie #${gameData.id}</strong>
-        <br>
-        Statut: ${statusText}
-      </div>
-      ${actionButton}
-    `;
-    container.appendChild(gameItem);
-  });
-}
-
+// Crée une nouvelle partie
 async function createNewGame() {
   try {
     const response = await window.createGame();
@@ -159,6 +89,7 @@ async function createNewGame() {
   }
 }
 
+// Rejoint une partie existante
 async function joinGame(gameId) {
   try {
     const gameIdNum = parseInt(gameId);
@@ -189,6 +120,7 @@ async function joinGame(gameId) {
   }
 }
 
+// Gère le clic sur le bouton "Rejoindre"
 function handleJoinClick(gameId) {
   const btn = event.target;
   btn.disabled = true;
@@ -198,6 +130,7 @@ function handleJoinClick(gameId) {
   });
 }
 
+// Redirige vers une partie spécifique
 function goToGame(gameId) {
   if (!gameId) {
     showMessage('ID de partie invalide', 'error');
@@ -206,6 +139,7 @@ function goToGame(gameId) {
   window.location.href = `game.html?gameId=${gameId}`;
 }
 
+// Affiche un message temporaire à l'utilisateur
 function showMessage(message, type = 'info') {
   const messageDiv = document.getElementById('status-message');
   messageDiv.textContent = message;
@@ -217,15 +151,17 @@ function showMessage(message, type = 'info') {
   }, 3000);
 }
 
+// Configure les écouteurs d'événements
 function setupEventListeners() {
   document.getElementById('create-game-btn').addEventListener('click', createNewGame);
-  document.getElementById('refresh-games-btn').addEventListener('click', loadGames);
+  document.getElementById('refresh-games-btn').addEventListener('click', loadAvailableGames);
   document.getElementById('logout-link').addEventListener('click', async (e) => {
     e.preventDefault();
     await logout();
   });
   
-  setInterval(loadGames, 10000);
+  // Actualise automatiquement toutes les 10 secondes
+  setInterval(loadAvailableGames, 10000);
 }
 
 window.joinGame = joinGame;

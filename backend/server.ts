@@ -8,8 +8,6 @@ import { corsMiddleware  } from "./middleware/cors.ts";
 import { initDb,createDefaultAdmins } from "./config/db.ts";
 import { handleWebSocket } from "./utils/websocket.ts";
 import { router as adminRouter } from "./routes/admin.ts";
-import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
-import { serveDir } from "https://deno.land/std@0.200.0/http/file_server.ts";
 
 const app = new Application();
 const PORT = 3000;
