@@ -83,7 +83,6 @@ export const createDefaultAdmins = async () => {
           email: "admin@admin",
           password: "admin" 
         }
-        //On peut creer d'autre admin
       ];
       
       for (const admin of adminUsers) {

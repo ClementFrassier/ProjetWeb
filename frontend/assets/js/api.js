@@ -84,44 +84,7 @@ async function getGameDetails(gameId) {
   }
 }
 
-// Récupère les parties actives de l'utilisateur
-async function getActiveGames() {
-  try {
-    const response = await fetch(`${window.API_URL}/games/active`, {
-      method: 'GET',
-      credentials: 'include'
-    });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      return { error: errorData.message || `HTTP Error ${response.status}` };
-    }
-
-    const data = await response.json();
-
-    if (data.games && Array.isArray(data.games)) {
-      const transformedGames = data.games.map(game => {
-        if (typeof game === 'object' && !Array.isArray(game)) return game;
-        
-        return {
-          id: game[0],
-          player1_id: game[1],
-          player2_id: game[2],
-          status: mapStatusIdToString(game[3]),
-          winner_id: game[4],
-          created_at: game[5],
-          updated_at: game[6]
-        };
-      });
-
-      return { games: transformedGames };
-    }
-
-    return data;
-  } catch (error) {
-    return { error: "Connection error" };
-  }
-}
 
 // Effectue un tir sur la grille adverse
 async function makeShot(gameId, x, y) {
@@ -139,62 +102,8 @@ async function makeShot(gameId, x, y) {
   }
 }
 
-// Abandonne la partie en cours
-async function abandonGame(gameId) {
-  try {
-    const response = await fetch(`${window.API_URL}/games/dabandon`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gameId })
-    });
-    
-    return await response.json();
-  } catch (error) {
-    return { error: "Unable to abandon game" };
-  }
-}
 
-// Récupère le profil de l'utilisateur connecté
-async function getUserProfile() {
-  try {
-    const response = await fetch(`${window.API_URL}/users/profile`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    return await response.json();
-  } catch (error) {
-    return { error: "Unable to retrieve profile" };
-  }
-}
 
-// Récupère les statistiques de l'utilisateur
-async function getUserStats() {
-  try {
-    const response = await fetch(`${window.API_URL}/users/stats`, {
-      method: 'GET',
-      credentials: 'include'
-    });
-    
-    return await response.json();
-  } catch (error) {
-    return { error: "Unable to retrieve statistics" };
-  }
-}
-
-// Récupère le classement général des joueurs
-async function getLeaderboard() {
-  try {
-    const response = await fetch(`${window.API_URL}/users/leaderboard`, {
-      method: 'GET'
-    });
-    
-    return await response.json();
-  } catch (error) {
-    return { error: "Unable to retrieve leaderboard" };
-  }
-}
 
 // Marque le joueur comme prêt à commencer
 async function setPlayerReady(gameId) {
@@ -230,11 +139,7 @@ async function checkPlayersReady(gameId) {
 window.createGame = createGame;
 window.joinGame = joinGame;
 window.getGameDetails = getGameDetails;
-window.getActiveGames = getActiveGames;
 window.makeShot = makeShot;
-window.abandonGame = abandonGame;
-window.getUserProfile = getUserProfile;
-window.getUserStats = getUserStats;
-window.getLeaderboard = getLeaderboard;
+
 window.setPlayerReady = setPlayerReady;
 window.checkPlayersReady = checkPlayersReady;

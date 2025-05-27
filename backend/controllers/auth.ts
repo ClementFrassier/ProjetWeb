@@ -48,8 +48,8 @@ export const registerUser = async (ctx: Context) => {
     if (newUser.length > 0) {
       await db.query(
         "INSERT INTO stats (user_id) VALUES (?)",
-        [newUser[0].id]
-      );
+        [newUser[0][0]]
+      );  
     }
 
     ctx.response.status = 201;

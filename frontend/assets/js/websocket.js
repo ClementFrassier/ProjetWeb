@@ -3,13 +3,9 @@ let gameId = null;
 let userId = null;
 let userName = null;
 
-// Vérifie si la connexion WebSocket est active
-function isWebSocketConnected() {
-  return socket && socket.readyState === WebSocket.OPEN;
-}
 
 // Ajoute un message de chat de manière sécurisée
-function safeAddChatMessage(message) {
+function safeAddChatMessage(message) {  
   if (typeof window.addChatMessage === 'function') {
     window.addChatMessage(message);
   } else if (typeof addChatMessage === 'function') {
@@ -279,18 +275,10 @@ function handleShotResult(x, y, hit, sunk) {
   }
 }
 
-// Ferme la connexion WebSocket
-function closeWebSocket() {
-  if (socket) {
-    socket.close();
-    socket = null;
-    gameId = null;
-  }
-}
+
 
 // Exposition des fonctions dans l'espace global
 window.initWebSocket = initWebSocket;
 window.sendWebSocketMessage = sendWebSocketMessage;
 window.sendShot = sendShot;
 window.sendChatMessage = sendChatMessage;
-window.isWebSocketConnected = isWebSocketConnected;
