@@ -3,6 +3,7 @@ import { DB } from "https://deno.land/x/sqlite/mod.ts";
 export const db = new DB("./battleship.db");
 
 export const initDb = async () => {
+
   db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
