@@ -119,6 +119,7 @@ bataille-navale/
    - Ouvrir `https://localhost:8080` dans votre navigateur
    - Accepter le certificat SSL (auto-signé pour le développement)
 
+
 ### Comptes par défaut
 
 - **Administrateur** : `admin` / `admin`
